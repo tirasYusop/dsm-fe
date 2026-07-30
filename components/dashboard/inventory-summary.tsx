@@ -1,24 +1,53 @@
-export default function InventorySummary() {
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Boxes, PackageX, ClipboardList, Utensils } from "lucide-react";
+
+type Summary = {
+  total_inventory_items: number;
+  low_stock_items: number;
+  pending_requests: number;
+  today_usage: number;
+};
+
+export default function InventorySummary({
+  summary,
+  loading,
+}: {
+  summary?: Summary;
+  loading: boolean;
+}) {
+  const stats = [
+    { label: "Inventory Items", value: summary?.total_inventory_items, icon: Boxes, accent: "text-foreground" },
+    {
+      label: "Low Stock",
+      value: summary?.low_stock_items,
+      icon: PackageX,
+      accent: summary && summary.low_stock_items > 0 ? "text-red-500" : "text-green-600",
+    },
+    { label: "Pending Requests", value: summary?.pending_requests, icon: ClipboardList, accent: "text-yellow-500" },
+    { label: "Used Today", value: summary?.today_usage, icon: Utensils, accent: "text-foreground" },
+  ];
+
   return (
-    <div className="p-4 rounded-xl border bg-white space-y-2">
-      <h2 className="text-lg font-semibold">Inventory Summary</h2>
-
-      <div className="grid grid-cols-3 gap-4 text-sm">
-        <div>
-          <p className="text-gray-500">Total Items Used</p>
-          <p className="font-bold">120 kg</p>
-        </div>
-
-        <div>
-          <p className="text-gray-500">Remaining Stock</p>
-          <p className="font-bold text-green-600">350 kg</p>
-        </div>
-
-        <div>
-          <p className="text-gray-500">Low Stock Alerts</p>
-          <p className="font-bold text-red-500">3 items</p>
-        </div>
-      </div>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Inventory Summary</CardTitle>
+      </CardHeader>
+      <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+        {stats.map((s) => (
+          <div key={s.label} className="space-y-1">
+            <p className="text-muted-foreground flex items-center gap-1.5">
+              <s.icon className="w-4 h-4" />
+              {s.label}
+            </p>
+            {loading ? (
+              <Skeleton className="h-6 w-12" />
+            ) : (
+              <p className={`font-bold text-lg ${s.accent}`}>{s.value ?? 0}</p>
+            )}
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   );
 }

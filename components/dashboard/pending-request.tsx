@@ -1,55 +1,46 @@
-type Request = {
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+
+type RequestEntry = {
   id: number;
   item: string;
-  quantity: string;
-  status: "pending" | "approved" | "rejected";
+  quantity: number;
+  status: "pending" | "approved" | "rejected" | "cancelled";
 };
 
-const mockRequests: Request[] = [
-  {
-    id: 1,
-    item: "Cooking Oil",
-    quantity: "20 L",
-    status: "pending",
-  },
-  {
-    id: 2,
-    item: "Rice",
-    quantity: "50 kg",
-    status: "approved",
-  },
-];
+const statusVariant: Record<RequestEntry["status"], "default" | "secondary" | "destructive" | "outline"> = {
+  pending: "secondary",
+  approved: "default",
+  rejected: "destructive",
+  cancelled: "outline",
+};
 
-export default function PendingRequests() {
+export default function PendingRequests({ requests, loading }: { requests: RequestEntry[]; loading: boolean }) {
   return (
-    <div className="p-4 rounded-xl border bg-white">
-      <h2 className="text-lg font-semibold mb-4">Pending Requests</h2>
-
-      <div className="space-y-3">
-        {mockRequests.map((r) => (
-          <div
-            key={r.id}
-            className="flex justify-between items-center border-b pb-2 text-sm"
-          >
-            <div>
-              <p className="font-medium">{r.item}</p>
-              <p className="text-gray-500">{r.quantity}</p>
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Recent Requests</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {loading ? (
+          Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)
+        ) : requests.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No requests yet.</p>
+        ) : (
+          requests.map((r) => (
+            <div key={r.id} className="flex justify-between items-center border-b pb-2 text-sm last:border-b-0 last:pb-0">
+              <div>
+                <p className="font-medium">{r.item}</p>
+                <p className="text-muted-foreground">{r.quantity}</p>
+              </div>
+              <Badge variant={statusVariant[r.status]} className="capitalize">
+                {r.status}
+              </Badge>
             </div>
-
-            <span
-              className={
-                r.status === "approved"
-                  ? "text-green-600 font-medium"
-                  : r.status === "rejected"
-                  ? "text-red-500 font-medium"
-                  : "text-yellow-500 font-medium"
-              }
-            >
-              {r.status}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
   );
 }
