@@ -1,82 +1,69 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Html5QrcodeScanner } from "html5-qrcode";
+import { Card, CardContent } from "@/components/ui/card";
+import { QrCode } from "lucide-react";
 
 export default function ScanPage() {
   const router = useRouter();
+  const [status, setStatus] = useState<"scanning" | "invalid">("scanning");
 
   useEffect(() => {
     const scanner = new Html5QrcodeScanner(
       "qr-reader",
-      {
-        fps: 10,
-        qrbox: 250,
-      },
+      { fps: 10, qrbox: 250 },
       false
     );
 
-    const onScanSuccess = async (decodedText: string) => {
-      console.log("QR SCANNED:", decodedText);
-
+    const success = async (decodedText: string) => {
       try {
         const url = new URL(decodedText);
+        const kitchen = url.searchParams.get("kitchen");
 
-        const type = url.searchParams.get("type");
-        const bookingId = url.searchParams.get("bookingId");
-
-        if (!type || !bookingId) {
-          alert("Invalid QR Code ❌");
+        if (!kitchen) {
+          setStatus("invalid");
           return;
         }
 
-        scanner.clear();
-
-        if (type === "attendance") {
-          const res = await fetch("/api/attendance", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ bookingId }),
-          });
-
-          if (res.ok) {
-            alert("Attendance marked ✔");
-          } else {
-            alert("Failed to mark attendance ❌");
-          }
-
-          return;
-        }
-
-        if (type === "inventory") {
-          router.push(`/activity/${bookingId}`);
-          return;
-        }
-
-        alert("Unknown QR type ❌");
-      } catch (err) {
-        console.error(err);
-        alert("Invalid QR format ❌");
+        await scanner.clear();
+        router.push(`/student/checkin?kitchen=${kitchen}`);
+      } catch (error) {
+        console.error(error);
+        setStatus("invalid");
       }
     };
 
-    scanner.render(onScanSuccess, (error) => {
-    });
-
+    scanner.render(success, () => {});
     return () => {
       scanner.clear().catch(() => {});
     };
   }, [router]);
 
   return (
-    <div className="p-6 flex flex-col items-center space-y-4">
-      <h1 className="text-xl font-bold">Scan QR Code</h1>
-      <p className="text-sm text-muted-foreground">
-        Attendance & Inventory Scanner
-      </p>
+    <div className="mx-auto space-y-6 p-3 ">
+      <div>
+        <h1 className="flex items-center gap-2 text-lg font-semibold text-gray-900 sm:text-xl">
+          <QrCode className="h-5 w-5 text-gray-400" />
+          Scan kitchen QR
+        </h1>
+        <p className="text-sm text-gray-500">
+          Point your camera at the QR code posted at the kitchen entrance.
+        </p>
+      </div>
 
-      <div id="qr-reader" className="w-full max-w-sm" />
+      <Card className="border-gray-100 shadow-sm">
+        <CardContent className="p-4">
+          <div id="qr-reader" className="overflow-hidden rounded-lg" />
+        </CardContent>
+      </Card>
+
+      {status === "invalid" && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          That QR code isn't recognized. Make sure you're scanning the code at a kitchen entrance, then try again.
+        </div>
+      )}
     </div>
   );
 }

@@ -1,48 +1,43 @@
-type Usage = {
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+
+type UsageEntry = {
+  id: number;
   item: string;
-  quantity: string;
-  usedBy: string;
-  time: string;
+  quantity: number;
+  unit: string;
+  reason: string;
+  date: string;
 };
 
-const mockUsage: Usage[] = [
-  {
-    item: "Rice",
-    quantity: "10 kg",
-    usedBy: "Volunteer A",
-    time: "10:30 AM",
-  },
-  {
-    item: "Milk",
-    quantity: "5 L",
-    usedBy: "Volunteer B",
-    time: "11:00 AM",
-  },
-];
-
-export default function RecentUsage() {
+export default function RecentUsage({ usage, loading }: { usage: UsageEntry[]; loading: boolean }) {
   return (
-    <div className="p-4 rounded-xl border bg-white">
-      <h2 className="text-lg font-semibold mb-4">Recent Usage</h2>
-
-      <div className="space-y-3">
-        {mockUsage.map((u, index) => (
-          <div
-            key={index}
-            className="flex justify-between border-b pb-2 text-sm"
-          >
-            <div>
-              <p className="font-medium">{u.item}</p>
-              <p className="text-gray-500">{u.usedBy}</p>
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Recent Usage</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {loading ? (
+          Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)
+        ) : usage.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No usage recorded yet.</p>
+        ) : (
+          usage.map((u) => (
+            <div key={u.id} className="flex justify-between border-b pb-2 text-sm last:border-b-0 last:pb-0">
+              <div>
+                <p className="font-medium">{u.item}</p>
+                <p className="text-muted-foreground">{u.reason}</p>
+              </div>
+              <div className="text-right">
+                <p>{u.quantity} {u.unit}</p>
+                <p className="text-muted-foreground text-xs">
+                  {new Date(u.date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </p>
+              </div>
             </div>
-
-            <div className="text-right">
-              <p>{u.quantity}</p>
-              <p className="text-gray-400 text-xs">{u.time}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
   );
 }
