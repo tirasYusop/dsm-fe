@@ -5,28 +5,7 @@ import API from "@/lib/api1";
 import InventoryTable from "@/components/volunteer/InventoryTable";
 import UsageHistoryTable from "@/components/volunteer/UsageTable";
 import RoleGuard from "@/components/auth/roleguard";
-
-type InventoryItem = {
-  id: number;
-  name: string;
-  unit: string;
-  volunteer_stock: number;
-  status: string;
-  last_reported_quantity: number | null;
-};
-
-type UsageRecord = {
-  id: number;
-  item_name: string;
-  quantity: number;
-  usage_unit: string;
-  created_at: string;
-};
-
-type UsageEntry = {
-  quantity: number;
-  unit: string;
-};
+import type {InventoryItem,UsageRecord,UsageEntry} from "@/types/kitchen"
 
 export default function InventoryPage() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);

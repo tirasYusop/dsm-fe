@@ -36,6 +36,7 @@ export default function DashboardLayout({
       label: "Shift",
       items: [
         { label: "Clock in", href: "/volunteer/shift" },
+        { label: "Jadual Bertugas", href: "/volunteer/schedul" },
       ],
     },
   ];

@@ -6,24 +6,7 @@ import RoleGuard from "@/components/auth/roleguard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Clock, Square, History } from "lucide-react";
-
-type VolunteerProfile = {
-  id: number;
-  name: string;
-  faculty: string;
-  kolej: string;
-};
-
-type Shift = {
-  id: number;
-  volunteer: number;
-  volunteer_name: string;
-  clock_in: string;
-  clock_out: string | null;
-  notes: string;
-  duration_minutes: number;
-  is_active: boolean;
-};
+import {VolunteerProfile,Shift} from "@/types/kitchen"
 
 function formatElapsed(startIso: string) {
   const diff = Math.max(0, Date.now() - new Date(startIso).getTime());

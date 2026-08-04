@@ -16,16 +16,7 @@ import {
 import { Plus } from "lucide-react";
 import RoleGuard from "@/components/auth/roleguard";
 import RequestFormDrawer from "@/components/inventory/requestdrawer";
-
-type RequestItem = {
-  id: number;
-  item_name: string | null;
-  new_item_name: string | null;
-  quantity: number;
-  reason: string;
-  status: "pending" | "approved" | "rejected" | "cancelled";
-  created_at: string;
-};
+import type {RequestItem} from "@/types/kitchen"
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString("en-MY", {

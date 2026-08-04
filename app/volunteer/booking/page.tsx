@@ -12,45 +12,8 @@ import {
 } from "@/components/ui/table";
 import RoleGuard from "@/components/auth/roleguard";
 import { ChevronDown, Users } from "lucide-react";
+import type {Booking,Kitchen} from "@/types/kitchen"
 
-type Participant = {
-  id: number;
-  name: string;
-  student_id: string;
-  faculty: string;
-  is_owner: boolean;
-};
-
-type Booking = {
-  id: number;
-  student: number;
-  student_name: string;
-  slot: number;
-  slot_detail: {
-    id: number;
-    kitchen: number;
-    kitchen_name: string;
-    date: string;
-    start_time: string;
-    end_time: string;
-    max_capacity: number;
-    current_booking: number;
-    available_capacity: number;
-    status: string;
-  };
-  slot_date: string;
-  start_time: string;
-  end_time: string;
-  kitchen_name: string;
-  number_of_people: number;
-  purpose: string;
-  status: string;
-  attended: boolean;
-  created_at: string;
-  participants: Participant[];
-  is_passed: boolean;
-  display_status: string;
-};
 
 function todayISO() {
   return new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD, local time
@@ -78,10 +41,7 @@ export default function VolunteerKitchenRosterPage() {
     setLoading(true);
     setError(null);
     try {
-      // No `kitchen` param here on purpose -- a volunteer's kitchen comes
-      // from their own account (request.user.kitchen) on the backend, not
-      // from anything the client sends.
-      const res = await API.get("/kitchen-bookings/roster/", {
+        const res = await API.get("/kitchen-bookings/roster/", {
         params: { date: forDate },
       });
       setBookings(res.data);
@@ -99,7 +59,6 @@ export default function VolunteerKitchenRosterPage() {
     setExpandedBookingId((prev) => (prev === bookingId ? null : bookingId));
   };
 
-  // slot -> bookings (single kitchen, so no kitchen-level grouping needed)
   const slotGroups = useMemo(() => {
     const bySlot: Record<string, { slot: Booking["slot_detail"]; bookings: Booking[] }> = {};
 
