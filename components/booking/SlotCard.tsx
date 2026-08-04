@@ -2,15 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Clock, Users } from "lucide-react";
-
-type Slot = {
-  id: number;
-  date: string;
-  start_time: string;
-  end_time: string;
-  available_capacity: number;
-  status: string;
-};
+import type {Slot} from "@/types/kitchen"
 
 type Props = {
   slot: Slot;
@@ -18,7 +10,7 @@ type Props = {
 };
 
 export default function SlotCard({ slot, onBook }: Props) {
-  const isFull = slot.available_capacity <= 0 || slot.status === "full";
+  const isFull = slot.available_capacity <= 0 || slot.status === "penuh";
 
   return (
     <div
@@ -40,13 +32,13 @@ export default function SlotCard({ slot, onBook }: Props) {
           </p>
           <p className="flex items-center gap-1 text-xs text-gray-500">
             <Users className="h-3 w-3" />
-            {isFull ? "Fully booked" : `${slot.available_capacity} slot${slot.available_capacity === 1 ? "" : "s"} available`}
+            {isFull ? "Penuh" : `${slot.available_capacity} slot${slot.available_capacity === 1 ? "" : "s"} Tersedia`}
           </p>
         </div>
       </div>
 
       <Button size="sm" disabled={isFull} onClick={() => onBook(slot.id)}>
-        {isFull ? "Full" : "Book"}
+        {isFull ? "Penuh" : "Tempah"}
       </Button>
     </div>
   );

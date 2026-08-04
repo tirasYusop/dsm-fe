@@ -10,15 +10,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { User, Users, Loader2, Plus, CalendarDays,Clock } from "lucide-react";
-
-type Slot = {
-  id: number;
-  date: string;
-  start_time: string;
-  end_time: string;
-  available_capacity: number;
-  status: string;
-};
+import type {Slot} from "@/types/kitchen"
 
 type Props = {
   bookingSlot: Slot | null;
