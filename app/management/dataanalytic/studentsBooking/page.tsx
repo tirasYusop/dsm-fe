@@ -4,40 +4,7 @@ import { Fragment, useEffect, useState } from "react";
 import API from "@/lib/api1";
 import {Table,TableHeader,TableHead,TableRow,TableCell,TableBody} from "@/components/ui/table";
 import RoleGuard from "@/components/auth/roleguard";
-
-type Attendance = {
-  id:number;
-  student:{
-    student_id:string;
-    name:string;
-    faculty:string;
-  };
-  booking?:{
-    id:number;
-    slot:{
-      date:string;
-      start_time:string;
-      end_time:string;
-    };
-    number_of_people:number;
-  };
-
-  kitchen:{
-    id:number;
-    name:string;
-    code:string;
-    }
-  attendance_type:string;
-  check_in_time:string;
-};
-
-type Participant = {
-  id:number;
-  name:string;
-  student_id:string;
-  faculty:string;
-  is_owner:boolean;
-};
+import type {Attendance, Participant} from "@/types/attandance"
 
 export default function StudentBookingPage(){
   const [records,setRecords] =useState<Attendance[]>([]);
@@ -50,12 +17,8 @@ export default function StudentBookingPage(){
 
   const fetchBooking = async()=>{
     try{
-      const res = await API.get(
-        "/attendance/management/booking/"
-      );
-      setRecords(
-        res.data
-      );
+      const res = await API.get("/attendance/management/booking/");
+      setRecords(res.data);
     }catch(error){
       console.error("Failed load booking attendance",error);
     }finally{
@@ -64,7 +27,6 @@ export default function StudentBookingPage(){
   };
 
   const toggleFriends = async (bookingId: number) => {if (expandedBookingId === bookingId) {setExpandedBookingId(null);return;}
-
     setExpandedBookingId(bookingId);
     if (participantsCache[bookingId]) {return;}
 
@@ -110,7 +72,7 @@ export default function StudentBookingPage(){
   return (
     <RoleGuard allowedRoles={["management" ]}>
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Student Booking Attendance</h1>
+        <h1 className="text-2xl font-bold">Kehadiran Pelajar (Tempahan)</h1>
         {
           Object.keys(groupedKitchen).map((kitchenId)=>{
               const kitchenRecords =groupedKitchen[kitchenId];
@@ -128,13 +90,13 @@ export default function StudentBookingPage(){
                       >
                         <TableRow>
                           <TableHead className="font-bold w-10">No.</TableHead>
-                          <TableHead className="font-bold">Student ID</TableHead>
-                          <TableHead className="font-bold">Name</TableHead>
-                          <TableHead className="font-bold text-center"> Faculty </TableHead>
-                          <TableHead className="font-bold text-center">Date</TableHead>
+                          <TableHead className="font-bold">ID Pelajar</TableHead>
+                          <TableHead className="font-bold">Nama</TableHead>
+                          <TableHead className="font-bold text-center">Fakulti</TableHead>
+                          <TableHead className="font-bold text-center">Tarikh</TableHead>
                           <TableHead className="font-bold text-center">Slot</TableHead>
-                          <TableHead className="font-bold text-center">People</TableHead>
-                          <TableHead className="font-bold text-center">Type</TableHead>
+                          <TableHead className="font-bold text-center">Jumlah Pelajar</TableHead>
+                          <TableHead className="font-bold text-center">Jenis</TableHead>
                           <TableHead className="font-bold text-center">Check In</TableHead>
                         </TableRow>
                       </TableHeader>

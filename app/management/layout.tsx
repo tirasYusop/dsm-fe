@@ -10,44 +10,42 @@ export default function DashboardLayout({
 }) {
   const menuGroups = [
     {
-      label: "Home",
-      items: [{ label: "Dashboard", href: "/management/dashboard" },],
+      label: "Laman Utama",
+      items: [{ label: "Dashboard", href: "/management/dashboard" }],
     },
     {
-      label: "Requests",
-      items: [{ label: "Requests", href: "/management/request" },
+      label: "Permintaan",
+      items: [{ label: "Permintaan", href: "/management/request" }],
+    },
+    {
+      label: "Inventori",
+      items: [
+        { label: "Inventori (Masuk/Keluar)", href: "/management/inventory" },
+        { label: "Ringkasan Inventori", href: "/management/history" },
       ],
     },
     {
-      label: "Inventory",
+      label: "Pelajar",
       items: [
-        { label: "Inventory (In/Out)", href: "/management/inventory" },
-        { label: "Overview", href: "/management/history" },
+        { label: "Pelajar Walk-in", href: "/management/dataanalytic/studentWalkin" },
+        { label: "Tempahan Pelajar", href: "/management/dataanalytic/studentsBooking" },
+        { label: "Penyimpanan Pelajar", href: "/management/storage" },
+        { label: "Maklum Balas Pelajar", href: "/management/feedback" },
       ],
     },
     {
-      label: "Student",
+      label: "Dapur",
       items: [
-        { label: "Students Walk-in", href: "/management/dataanalytic/studentWalkin" },
-        { label: "Students Booking", href: "/management/dataanalytic/studentsBooking" },
-        { label: "Students Storage", href: "/management/storage" },
+        { label: "QR Dapur", href: "/management/kitchen" },
+        { label: "Sukarelawan Dapur", href: "/management/kitchen/volunteer" },
+        { label: "Laporan Sukarelawan", href: "/management/kitchen/volunteer/report" },
+        { label: "Jadual Betugas", href: "/management/kitchen/volunteer/schedual" },
       ],
     },
     {
-      label: "Kitchen",
+      label: "Aset",
       items: [
-        { label: "Kitchen QR", href: "/management/kitchen" },
-        { label: "Kitchen Volunteer", href: "/management/kitchen/volunteer" },
-        { label: "Volunteer Report", href: "/management/kitchen/volunteer/report" },
-      ],
-    },
-    {
-      label: "Asset",
-      items: [
-        { label: "Register Asset", href: "/management/asset/RegisterAsset" },
-        { label: "Maintenance Asset", href: "/management/asset/AssetMaintenanceForm" },
-        { label: "Disposal Asset", href: "/management/asset/AssetDisposalForm" },
-        { label: "Report Asset", href: "/management/asset/AssetReport" },
+        { label: "Pengurusan Aset", href: "/management/asset" },
       ],
     },
   ];

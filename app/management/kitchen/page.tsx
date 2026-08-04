@@ -13,14 +13,8 @@ import {
 } from "@/components/ui/card";
 
 import { Button } from "@/components/ui/button";
+import type {Kitchen} from "@/types/kitchen"
 
-
-type Kitchen = {
-  id:number;
-  name:string;
-  code:string;
-  location:string;
-};
 
 export default function KitchenPage(){
   const router = useRouter();

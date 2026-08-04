@@ -1,25 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import API from "@/lib/api1";
 import RoleGuard from "@/components/auth/roleguard";
 import { Table, TableHeader, TableHead, TableRow, TableCell, TableBody } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Clock, Users, Timer } from "lucide-react";
-
-type Kitchen = { id: number; name: string; code: string };
-
-type Shift = {
-  id: number;
-  volunteer: number;
-  volunteer_name: string;
-  kitchen_name: string;
-  clock_in: string;
-  clock_out: string | null;
-  notes: string;
-  duration_minutes: number;
-  is_active: boolean;
-};
+import { Clock, Users, Timer, Download } from "lucide-react";
+import { Shift, Kitchen } from "@/types/kitchen";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 function formatDuration(minutes: number) {
   const h = Math.floor(minutes / 60);
@@ -40,7 +29,7 @@ export default function VolunteerReportPage() {
   const [kitchens, setKitchens] = useState<Kitchen[]>([]);
   const [selectedKitchen, setSelectedKitchen] = useState<string>("");
   const [shifts, setShifts] = useState<Shift[]>([]);
-  const [search, setSearch] = useState("");
+  const [selectedVolunteer, setSelectedVolunteer] = useState<string>(""); // "" = all
   const [loading, setLoading] = useState(false);
 
   const fetchKitchens = async () => {
@@ -71,22 +60,70 @@ export default function VolunteerReportPage() {
 
   useEffect(() => {
     fetchShifts(selectedKitchen);
+    setSelectedVolunteer("");
   }, [selectedKitchen]);
 
-  const filteredShifts = search.trim()
-    ? shifts.filter((s) => s.volunteer_name.toLowerCase().includes(search.toLowerCase()))
+  const volunteerOptions = useMemo(() => {
+    const names = new Set(shifts.map((s) => s.volunteer_name));
+    return Array.from(names).sort();
+  }, [shifts]);
+
+  const filteredShifts = selectedVolunteer
+    ? shifts.filter((s) => s.volunteer_name === selectedVolunteer)
     : shifts;
 
   const totalMinutes = filteredShifts.reduce((sum, s) => sum + s.duration_minutes, 0);
   const activeCount = filteredShifts.filter((s) => s.is_active).length;
   const uniqueVolunteers = new Set(filteredShifts.map((s) => s.volunteer)).size;
 
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+
+    const kitchenLabel = selectedKitchen
+      ? kitchens.find((k) => String(k.id) === selectedKitchen)?.name ?? "All kitchens"
+      : "All kitchens";
+    const volunteerLabel = selectedVolunteer || "All volunteers";
+
+    doc.setFontSize(14);
+    doc.text("Volunteer time report", 14, 15);
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Kitchen: ${kitchenLabel}`, 14, 22);
+    doc.text(`Volunteer: ${volunteerLabel}`, 14, 27);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 32);
+    doc.text(`Total hours: ${formatDuration(totalMinutes)}`, 14, 37);
+
+    autoTable(doc, {
+      startY: 42,
+      head: [["No.", "Volunteer", "Kitchen", "Clock in", "Clock out", "Duration", "Notes", "Status"]],
+      body: filteredShifts.map((shift, index) => [
+        index + 1,
+        shift.volunteer_name,
+        shift.kitchen_name,
+        formatDateTime(shift.clock_in),
+        shift.clock_out ? formatDateTime(shift.clock_out) : "—",
+        formatDuration(shift.duration_minutes),
+        shift.notes || "—",
+        shift.is_active ? "Active" : "Completed",
+      ]),
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [31, 41, 55] }, 
+      columnStyles: { 6: { cellWidth: 40 } }, 
+    });
+
+    const filenameParts = ["volunteer-report"];
+    if (selectedVolunteer) filenameParts.push(selectedVolunteer.replace(/\s+/g, "-").toLowerCase());
+    filenameParts.push(new Date().toISOString().slice(0, 10));
+
+    doc.save(`${filenameParts.join("_")}.pdf`);
+  };
+
   return (
     <RoleGuard allowedRoles={["management"]}>
       <div className="mx-auto space-y-5 p-3">
         <div>
-          <h1 className="text-lg font-semibold text-gray-900 sm:text-xl">Volunteer time report</h1>
-          <p className="text-sm text-gray-500">Clock-in/clock-out records across your volunteers.</p>
+          <h1 className="text-lg font-semibold text-gray-900 sm:text-xl">Laporan Sukarelawan</h1>
+          <p className="text-sm text-gray-500">Rekod daftar masuk/daftar keluar sukarelawan anda.</p>
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -96,7 +133,9 @@ export default function VolunteerReportPage() {
                 <Timer className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-xs text-gray-500">Total hours logged</p>
+                <p className="text-xs text-gray-500">
+                  {selectedVolunteer ? `Jam direkodkan — ${selectedVolunteer}` : "Jumlah jam direkodkan"}
+                </p>
                 <p className="text-2xl font-semibold text-gray-900">{formatDuration(totalMinutes)}</p>
               </div>
             </CardContent>
@@ -107,7 +146,7 @@ export default function VolunteerReportPage() {
                 <Users className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-xs text-gray-500">Volunteers involved</p>
+                <p className="text-xs text-gray-500">Sukarelawan yang terlibat</p>
                 <p className="text-2xl font-semibold text-gray-900">{uniqueVolunteers}</p>
               </div>
             </CardContent>
@@ -118,7 +157,7 @@ export default function VolunteerReportPage() {
                 <Clock className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-xs text-gray-500">Currently clocked in</p>
+                <p className="text-xs text-gray-500">Sedang Aktif Bekerja</p>
                 <p className={`text-2xl font-semibold ${activeCount > 0 ? "text-amber-600" : "text-gray-900"}`}>
                   {activeCount}
                 </p>
@@ -129,13 +168,13 @@ export default function VolunteerReportPage() {
 
         <div className="flex flex-wrap items-end gap-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Kitchen</label>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Dapur</label>
             <select
               className="w-56 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
               value={selectedKitchen}
               onChange={(e) => setSelectedKitchen(e.target.value)}
             >
-              <option value="">All kitchens</option>
+              <option value="">Semua Dapur</option>
               {kitchens.map((k) => (
                 <option key={k.id} value={k.id}>
                   {k.name}
@@ -144,45 +183,58 @@ export default function VolunteerReportPage() {
             </select>
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Search volunteer</label>
-            <input
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Sukarelawan</label>
+            <select
               className="w-56 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
-              placeholder="Name"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+              value={selectedVolunteer}
+              onChange={(e) => setSelectedVolunteer(e.target.value)}
+            >
+              <option value="">Semua Sukarelawan</option>
+              {volunteerOptions.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
           </div>
+          <button
+            onClick={handleExportPDF}
+            disabled={filteredShifts.length === 0}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Download className="h-4 w-4" />Eksport PDF
+          </button>
         </div>
 
         <div className="overflow-hidden rounded-lg border bg-white">
           <Table className="w-full">
             <TableHeader>
               <TableRow className="bg-gray-100">
-                <TableHead className="p-2 text-left font-bold w-10">No.</TableHead>
-                <TableHead className="p-2 text-left font-bold">Volunteer</TableHead>
-                <TableHead className="p-2 text-left font-bold">Kitchen</TableHead>
+                <TableHead className="p-2 text-left font-bold w-10">Bil.</TableHead>
+                <TableHead className="p-2 text-left font-bold">Sukarelawan</TableHead>
+                <TableHead className="p-2 text-left font-bold">Dapur</TableHead>
                 <TableHead className="p-2 text-left font-bold">Clock in</TableHead>
                 <TableHead className="p-2 text-left font-bold">Clock out</TableHead>
-                <TableHead className="p-2 text-left font-bold">Working Time</TableHead>
-                <TableHead className="p-2 text-left font-bold">Notes</TableHead>
+                <TableHead className="p-2 text-left font-bold">Waktu Bekerja</TableHead>
+                <TableHead className="p-2 text-left font-bold">Nota</TableHead>
                 <TableHead className="p-2 text-left font-bold">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7}>Loading...</TableCell>
+                  <TableCell colSpan={8}>Loading...</TableCell>
                 </TableRow>
               ) : filteredShifts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="p-6 text-center text-gray-500">
-                    No shifts recorded yet.
+                  <TableCell colSpan={8} className="p-6 text-center text-gray-500">
+                    Tiada syif direkodkan lagi.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredShifts.map((shift,index) => (
+                filteredShifts.map((shift, index) => (
                   <TableRow key={shift.id} className="border-t">
-                    <TableCell className="p-2 font-medium">{index+1}</TableCell>
+                    <TableCell className="p-2 font-medium">{index + 1}</TableCell>
                     <TableCell className="p-2 font-medium">{shift.volunteer_name}</TableCell>
                     <TableCell className="p-2">{shift.kitchen_name}</TableCell>
                     <TableCell className="p-2">{formatDateTime(shift.clock_in)}</TableCell>

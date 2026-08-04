@@ -34,10 +34,10 @@ export default function KitchenQRPage() {
       <h1 className="text-2xl font-bold">{qr.kitchen_name}</h1>
 
       <div className="border p-5 rounded item-center">
-        <h2 className="font-bold text-center mb-3">{qr.kitchen_code} Kitchen QR</h2>
+        <h2 className="font-bold text-center mb-3">{qr.kitchen_code}QR Dapur</h2>
         <QRCodeCanvas className="item-center w-full" value={qr.qr_url} size={300} />
         <p className="text-sm text-muted-foreground text-center mt-3">
-          Scan to check in or record kitchen activity
+          Imbas untuk daftar masuk atau merekod aktiviti dapur
         </p>
       </div>
     </div>

@@ -10,37 +10,7 @@ import RoleGuard from "@/components/auth/roleguard";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Download, Check, PackageCheck, X, ShoppingCart } from "lucide-react";
-
-type Request = {
-    id: number;
-    item: number | null;
-    item_name: string;
-    new_item_name: string | null;
-    quantity: number;
-    reason: string;
-    status: string;
-    kitchen_name: string | null;
-    new_item_unit: string;
-    new_item_package_size: string;
-};
-
-type ItemInfo = {
-    name: string;
-    unit: string;
-    price_per_unit: number | null;
-    management_stock: number;
-};
-
-type GroupedRequests = {
-    kitchen_name: string;
-    requests: Request[];
-};
-
-type StockCheck = {
-    isNew: boolean;
-    hasEnough: boolean;
-    currentStock: number;
-};
+import type { Request,ItemInfo,GroupedRequests,StockCheck} from "@/types/kitchen"
 
 const STATUS_BADGE_STYLES: Record<string, string> = {
     approved: "bg-green-100 text-green-700 hover:bg-green-100",
@@ -50,9 +20,9 @@ const STATUS_BADGE_STYLES: Record<string, string> = {
 
 const STATUS_FILTERS = [
     { value: "all", label: "All" },
-    { value: "pending", label: "Pending" },
-    { value: "approved", label: "Approved" },
-    { value: "rejected", label: "Rejected" },
+    { value: "pending", label: "Menunggu" },
+    { value: "approved", label: "Diluluskan" },
+    { value: "rejected", label: "Ditolak" },
 ];
 
 const getBadgeStyle = (status: string) =>
@@ -66,20 +36,20 @@ const getItemLabel = (req: Request) =>
 
 function StockCheckBadge({ check }: { check: StockCheck }) {
     if (check.isNew) {
-        return <span className="text-xs text-gray-400 italic">New item</span>;
+        return <span className="text-xs text-gray-400 italic">Item Baru</span>;
     }
     if (check.hasEnough) {
         return (
             <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700">
                 <PackageCheck className="h-3.5 w-3.5" />
-                In stock ({check.currentStock})
+                Dalam stok ({check.currentStock})
             </span>
         );
     }
     return (
         <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600">
             <ShoppingCart className="h-3.5 w-3.5" />
-            Need to purchase ({check.currentStock} on hand)
+            Perlu membeli ({check.currentStock} dalam gudang)
         </span>
     );
 }
@@ -103,15 +73,15 @@ function RequestActions({
         <>
             <Button size={size} onClick={() => onApprove(req.id)}>
                 <Check className="h-4 w-4 mr-1" />
-                Purchase
+                Pembelian
             </Button>
             <Button size={size} variant="secondary" onClick={() => onFulfill(req.id)}>
                 <PackageCheck className="h-4 w-4 mr-1" />
-                Use Stock
+                Gunakan Stok
             </Button>
             <Button size={size} variant="destructive" onClick={() => onReject(req.id)}>
                 <X className="h-4 w-4 mr-1" />
-                Reject
+                Tolak
             </Button>
         </>
     );
@@ -189,8 +159,6 @@ export default function RequestListPage() {
         return { isNew: false, hasEnough: currentStock >= req.quantity, currentStock };
     };
 
-    // Kitchen options built from the full (unfiltered) request list, so the
-    // dropdown doesn't shrink as the person filters.
     const kitchenOptions = useMemo(() => {
         const names = new Set(requests.map((r) => r.kitchen_name ?? "Unassigned"));
         return Array.from(names).sort((a, b) => {
@@ -230,17 +198,8 @@ export default function RequestListPage() {
             .map(([kitchen_name, requests]) => ({ kitchen_name, requests }));
     }, [filteredRequests]);
 
-    // The PDF now reflects whatever's currently filtered on screen (search,
-    // kitchen, status) -- so filtering down to one kitchen or searching for
-    // one item and hitting download gives just that slice.
     const downloadPdf = () => {
         const pendingRequests = filteredRequests.filter((r) => r.status === "pending");
-
-        // Consolidate existing-item demand across ALL kitchens first, so
-        // stock is checked against combined demand rather than once per
-        // request. Without this, two kitchens each requesting 5 units of an
-        // item with 8 in stock would both individually show "in stock" even
-        // though 10 are actually needed against 8 available.
         const existingDemand = new Map<number, { totalRequested: number }>();
         const newItemDemand = new Map<string, { name: string; unit: string; totalRequested: number }>();
 
@@ -307,18 +266,15 @@ export default function RequestListPage() {
         let y = 14;
 
         doc.setFontSize(16);
-        doc.text("Shopping Checklist", 14, y);
+        doc.text("Shopping Checklist DSM@UMS", 14, y);
         y += 6;
         doc.setFontSize(10);
         doc.setTextColor(120);
         doc.text(`Generated: ${new Date().toLocaleString("en-MY")}`, 14, y);
         y += 8;
-
-        // Consolidated purchase list -- what to actually buy, quantities
-        // netted against current stock, deduplicated across kitchens.
         doc.setFontSize(12);
         doc.setTextColor(0);
-        doc.text("To Purchase (all kitchens combined)", 14, y);
+        doc.text("To Purchase (all kitchens combined) DSM@UMS", 14, y);
         y += 4;
 
         if (purchaseLines.length === 0) {
@@ -358,13 +314,9 @@ export default function RequestListPage() {
             y = (doc as any).lastAutoTable.finalY + 12;
         }
 
-        // Per-kitchen breakdown -- who asked for what, for traceability.
-        // Quantities here are each kitchen's original request, not netted
-        // against stock (that netting only makes sense at the combined level).
         groupedRequests.forEach((group) => {
             const kitchenPending = group.requests.filter((r) => r.status === "pending");
             if (kitchenPending.length === 0) return;
-
             if (y > 260) {
                 doc.addPage();
                 y = 14;
@@ -394,7 +346,7 @@ export default function RequestListPage() {
         <RoleGuard allowedRoles={["management"]}>
             <div className="space-y-8">
                 <div className="flex items-center justify-between gap-3">
-                    <h1 className="text-2xl font-bold">Inventory Requests</h1>
+                    <h1 className="text-2xl font-bold">Permintaan Inventori</h1>
                     <div className="text-right">
                         <Button onClick={downloadPdf} variant="outline">
                             <Download className="h-4 w-4 mr-1.5" />
@@ -403,9 +355,9 @@ export default function RequestListPage() {
                         </Button>
                         {statusFilter !== "all" && statusFilter !== "pending" && (
                             <p className="mt-1 text-xs text-gray-400">
-                                Only pending requests generate a purchase list -- the "
+                                Hanya permintaan yang belum selesai akan dijana dalam senarai pembelian -- "
                                 {STATUS_FILTERS.find((f) => f.value === statusFilter)?.label}" filter
-                                will produce an empty checklist.
+                                akan menghasilkan senarai semak kosong.
                             </p>
                         )}
                     </div>
@@ -454,11 +406,11 @@ export default function RequestListPage() {
                 </div>
 
                 {!loading && requests.length === 0 && (
-                    <p className="text-gray-500">No requests yet.</p>
+                    <p className="text-gray-500">Belum ada permintaan.</p>
                 )}
 
                 {!loading && requests.length > 0 && groupedRequests.length === 0 && (
-                    <p className="text-gray-500">No requests match this filter.</p>
+                    <p className="text-gray-500">Tiada permintaan yang sepadan dengan penapis ini.</p>
                 )}
 
                 {groupedRequests.map((group) => (
@@ -468,11 +420,11 @@ export default function RequestListPage() {
                         <Table className="w-full border bg-white hidden md:table">
                             <TableHeader>
                                 <TableRow className="bg-gray-100">
-                                    <TableHead className="font-bold w-10">No</TableHead>
+                                    <TableHead className="font-bold w-10">Bil.</TableHead>
                                     <TableHead className="font-bold">Item</TableHead>
-                                    <TableHead className="font-bold">Quantity</TableHead>
-                                    <TableHead className="font-bold">Reason</TableHead>
-                                    <TableHead className="font-bold">Stock Check</TableHead>
+                                    <TableHead className="font-bold">Kuantit</TableHead>
+                                    <TableHead className="font-bold">Sebab</TableHead>
+                                    <TableHead className="font-bold">Stok Check</TableHead>
                                     <TableHead className="font-bold">Status</TableHead>
                                     <TableHead className="text-center font-bold">Action</TableHead>
                                 </TableRow>
@@ -520,10 +472,10 @@ export default function RequestListPage() {
 
                                         <div className="text-sm text-gray-600 space-y-1">
                                             <p>
-                                                Quantity:{" "}
+                                                Kunatiti:{" "}
                                                 <span className="font-medium text-gray-900">{req.quantity}</span>
                                             </p>
-                                            <p>Reason: {req.reason}</p>
+                                            <p>Sebab: {req.reason}</p>
                                             <StockCheckBadge check={getStockCheck(req)} />
                                         </div>
 

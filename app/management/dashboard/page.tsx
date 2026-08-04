@@ -18,37 +18,14 @@ import {
 import DashboardCard from "@/components/dashboard/chart/DashboardCard";
 import InventoryBySourceChart, { SourceBreakdown } from "@/components/dashboard/chart/InventoryBySourceChart";
 import FacultyAttendanceChart, { FacultyAttendance } from "@/components/dashboard/chart/FacultyAttendanceChart";
+import StudentUsageSummary, { StudentSummaryData } from "@/components/dashboard/chart/studentUsage";
+import type{DashboardSummary,SourceSummary,BookingStatusBreakdown}  from "@/types/movement"
 
-type DashboardSummary = {
-  totalItems: number;
-  pendingRequests: number;
-  inventoryInToday: number;
-  inventoryOutToday: number;
-  attendanceToday: number;
-  totalKitchens: number;
-  totalStudents: number;
-  totalWalkin: number;
-  totalBooking: number;
-};
-
-type BookingStatusBreakdown = {
-  pending: number;
-  approved: number;
-  cancelled: number;
-  rejected: number;
-};
-
-type SourceSummary = {
-  source: string;
-  total_quantity: number;
-  item_count: number;
-  total_amount: number;
-};
 
 const SOURCES = [
-  { value: "donation", label: "Donation", color: "#D9A441" },
-  { value: "purchase", label: "Purchase", color: "#114B44" },
-  { value: "sponsor", label: "Sponsor", color: "#C4694F" },
+  { value: "donation", label: "Sumbangan", color: "#D9A441" },
+  { value: "purchase", label: "Pembelian", color: "#114B44" },
+  { value: "sponsor", label: "Sponser", color: "#C4694F" },
   { value: "supplier", label: "Supplier", color: "#5B7B87" },
   { value: "other", label: "Other", color: "#9CA3AF" },
 ];
@@ -126,14 +103,9 @@ export default function ManagementDashboard() {
     totalWalkin: 0,
     totalBooking: 0,
   });
-  const [bookingStatus, setBookingStatus] = useState<BookingStatusBreakdown>({
-    pending: 0,
-    approved: 0,
-    cancelled: 0,
-    rejected: 0,
-  });
   const [sourceBreakdown, setSourceBreakdown] = useState<SourceBreakdown[]>([]);
   const [facultyData, setFacultyData] = useState<FacultyAttendance[]>([]);
+  const [studentSummary, setStudentSummary] = useState<StudentSummaryData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -150,6 +122,7 @@ export default function ManagementDashboard() {
           studentRes,
           allBookingsRes,
           sourceSummaryRes,
+          studentSummaryRes,
         ] = await Promise.all([
           API.get("inventory/"),
           API.get("requests/"),
@@ -160,6 +133,7 @@ export default function ManagementDashboard() {
           API.get("students/"),
           API.get("kitchen-bookings/"),
           API.get("source-inventory/summary/"),
+          API.get("attendance/summary/student/"),
         ]);
 
         const today = new Date().toISOString().split("T")[0];
@@ -185,13 +159,6 @@ export default function ManagementDashboard() {
           totalStudents: studentRes.data.length,
           totalWalkin: walkinRes.data.length,
           totalBooking: bookingRes.data.length,
-        });
-
-        setBookingStatus({
-          pending: allBookingsRes.data.filter((b: any) => b.status === "pending").length,
-          approved: allBookingsRes.data.filter((b: any) => b.status === "approved").length,
-          cancelled: allBookingsRes.data.filter((b: any) => b.status === "cancelled").length,
-          rejected: allBookingsRes.data.filter((b: any) => b.status === "rejected").length,
         });
 
         const summaryMap = new Map<string, SourceSummary>(
@@ -227,6 +194,8 @@ export default function ManagementDashboard() {
             .map(([faculty, count]) => ({ faculty, count }))
             .sort((a, b) => b.count - a.count)
         );
+
+        setStudentSummary(studentSummaryRes.data);
       } catch (error) {
         console.log("Dashboard error", error);
       } finally {
@@ -256,15 +225,15 @@ export default function ManagementDashboard() {
               <p className="text-xs font-semibold tracking-[0.25em] text-[#9FC5B8] uppercase mb-1">
                 {TODAY_LABEL}
               </p>
-              <h1 className="text-3xl font-bold text-white tracking-tight">Management Dashboard</h1>
+              <h1 className="text-3xl font-bold text-white tracking-tight">Dashboard Pengurusan</h1>
               <p className="text-sm text-[#C7D9D3] mt-1">
-                Inventory, requests, and student attendance — at a glance.
+                Inventori, permintaan, dan kehadiran pelajar kumulatif
               </p>
             </div>
             <div className="flex items-center gap-2 bg-white/10 rounded-2xl px-4 py-3">
               <TrendingUp size={18} className="text-[#D9A441]" />
               <div>
-                <p className="text-[11px] text-[#C7D9D3] leading-none">Net movement today</p>
+                <p className="text-[11px] text-[#C7D9D3] leading-none">Net movement Hari ini</p>
                 <p className="text-lg font-bold text-white leading-tight">
                   {netMovementToday >= 0 ? "+" : ""}
                   {netMovementToday}
@@ -280,34 +249,42 @@ export default function ManagementDashboard() {
             Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
           ) : (
             <>
-              <DashboardCard title="Total Active Kitchens" value={summary.totalKitchens} icon={<ChefHat size={18} />} accent="#114B44" />
-              <DashboardCard title="Total Students used" value={summary.totalStudents} icon={<GraduationCap size={18} />} accent="#5B7B87" />
-              <DashboardCard title="Total Bookings Made" value={summary.totalBooking} icon={<CalendarCheck size={18} />} accent="#D9A441" />
-              <DashboardCard title="Total Walk In" value={summary.totalWalkin} icon={<Footprints size={18} />} accent="#C4694F" />
+              <DashboardCard title="Jumlah Dapur Aktif" value={summary.totalKitchens} icon={<ChefHat size={18} />} accent="#114B44" />
+              <DashboardCard title="Jumlah Pengguna" value={summary.totalStudents} icon={<GraduationCap size={18} />} accent="#5B7B87" />
+              <DashboardCard title="Jumlah Tempahan Dapur" value={summary.totalBooking} icon={<CalendarCheck size={18} />} accent="#D9A441" />
+              <DashboardCard title="Jumlah Walk In Dapur" value={summary.totalWalkin} icon={<Footprints size={18} />} accent="#C4694F" />
             </>
           )}
         </div>
 
         {/* TODAY'S STATS */}
         <div>
-          <p className="text-xs font-semibold tracking-[0.2em] text-[#5B7B87] uppercase mb-3">Today</p>
+          <p className="text-xs font-semibold tracking-[0.2em] text-[#5B7B87] uppercase mb-3">Hari Ini</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)
             ) : (
               <>
-                <DashboardCard title="Total Inventory Items" value={summary.totalItems} icon={<Package size={18} />} accent="#114B44" />
-                <DashboardCard title="Pending Requests" value={summary.pendingRequests} icon={<Clock size={18} />} accent="#D9A441" />
-                <DashboardCard title="Inventory In Today" value={summary.inventoryInToday} icon={<ArrowDownToLine size={18} />} accent="#4C9A70" />
-                <DashboardCard title="Inventory Out Today" value={summary.inventoryOutToday} icon={<ArrowUpFromLine size={18} />} accent="#C4694F" />
-                <DashboardCard title="Attendance Today" value={summary.attendanceToday} icon={<Users size={18} />} accent="#5B7B87" />
+                <DashboardCard title="Jumlah Inventori Item" value={summary.totalItems} icon={<Package size={18} />} accent="#114B44" />
+                <DashboardCard title="Permintaan Tertangguh" value={summary.pendingRequests} icon={<Clock size={18} />} accent="#D9A441" />
+                <DashboardCard title="Inventori Masuk Hari Ini" value={summary.inventoryInToday} icon={<ArrowDownToLine size={18} />} accent="#4C9A70" />
+                <DashboardCard title="Inventory Keluar Hari Ini" value={summary.inventoryOutToday} icon={<ArrowUpFromLine size={18} />} accent="#C4694F" />
+                <DashboardCard title="Kehadiran Hari Ini" value={summary.attendanceToday} icon={<Users size={18} />} accent="#5B7B87" />
               </>
             )}
           </div>
         </div>
 
+        {/* STUDENT USAGE SUMMARY (category / purpose / by-kitchen / monthly trend) */}
+        <StudentUsageSummary data={studentSummary} loading={loading} />
+
         {/* CHARTS */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+
+        <div>
+          <p className="text-xs font-semibold tracking-[0.2em] text-[#5B7B87] uppercase">
+            Ringkasan Inventori
+          </p>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 mt-5">
           <div className="lg:col-span-3">
             <InventoryBySourceChart data={sourceBreakdown} loading={loading} />
           </div>
@@ -317,13 +294,13 @@ export default function ManagementDashboard() {
         </div>
 
         {/* ATTENDANCE BREAKDOWN + BOOKING STATUS */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-          <div className="lg:col-span-3 border rounded-2xl bg-white p-6 shadow-sm">
-            <h2 className="font-semibold text-lg text-[#16211C] mb-1">How students are attending</h2>
-            <p className="text-sm text-[#5B7B87] mb-5">Booking vs. walk-in, all time.</p>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 mt-4">
+          <div className="lg:col-span-3 border rounded-2xl bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
+            <h2 className="font-semibold text-lg text-[#16211C] mb-1">Cara pelajar hadir</h2>
+            <p className="text-sm text-[#5B7B87] mb-5">Tempahan vs. Walk-in</p>
             <div className="space-y-5">
               <AttendanceBar
-                label="Booked in advance"
+                label="Ditempah Lebih Awal"
                 count={summary.totalBooking}
                 total={totalAttendanceAllTime}
                 color="#114B44"
@@ -339,16 +316,18 @@ export default function ManagementDashboard() {
             </div>
           </div>
         </div>
+        </div>
+
 
         {/* SOURCE SUMMARY */}
         <div>
           <p className="text-xs font-semibold tracking-[0.2em] text-[#5B7B87] uppercase mb-3">
-            Sources at a glance
+            Kumulatif Sumber Dalam Ringgit Malaysia (RM)
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="border rounded-2xl bg-white p-5 shadow-sm flex items-center justify-between transition-shadow hover:shadow-md">
               <div>
-                <p className="text-sm text-[#5B7B87]">Total Donations Received</p>
+                <p className="text-sm text-[#5B7B87]">Jumlah Sumbangan Diterima</p>
                 <h3 className="text-2xl font-bold text-[#16211C] mt-1">RM {totalDonationAmount.toFixed(2)}</h3>
               </div>
               <span className="h-11 w-11 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#D9A44118", color: "#D9A441" }}>
@@ -358,7 +337,7 @@ export default function ManagementDashboard() {
 
             <div className="border rounded-2xl bg-white p-5 shadow-sm flex items-center justify-between transition-shadow hover:shadow-md">
               <div>
-                <p className="text-sm text-[#5B7B87]">Total Purchased</p>
+                <p className="text-sm text-[#5B7B87]">Jumlah Wang Digunakan Untuk Sumber Pembelian</p>
                 <h3 className="text-2xl font-bold text-[#16211C] mt-1">RM {totalPurchaseAmount.toFixed(2)}</h3>
               </div>
               <span className="h-11 w-11 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#114B4418", color: "#114B44" }}>
@@ -367,6 +346,7 @@ export default function ManagementDashboard() {
             </div>
           </div>
         </div>
+
 
         {/* FOOTNOTE */}
         <div className="border-t border-[#E0E6E4] pt-5 flex items-center justify-between flex-wrap gap-2">

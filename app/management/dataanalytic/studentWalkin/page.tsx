@@ -13,43 +13,8 @@ import {
   TableCell
 } from "@/components/ui/table";
 import RoleGuard from "@/components/auth/roleguard";
+import type {Attendance,StudentActivity} from "@/types/attandance"
 
-type Student = {
-  student_id: string;
-  name: string;
-  faculty: string;
-};
-
-type Kitchen = {
-  id: number;
-  name: string;
-  code: string;
-};
-
-type Attendance = {
-  id: number;
-  student: Student;
-  kitchen?: Kitchen;
-  attendance_type: string;
-  check_in_time: string;
-};
-
-type FoodbankTakenItem = {
-  id: number;
-  item: number;
-  item_name: string;
-  quantity: number;
-};
-
-type StudentActivity = {
-  id: number;
-  attendance: number;
-  took_rice: boolean;
-  took_dish: boolean;
-  took_foodbank: boolean;
-  used_kitchen: boolean;
-  foodbank_items: FoodbankTakenItem[];
-};
 
 export default function StudentWalkinPage() {
   const [records, setRecords] = useState<Attendance[]>([]);
@@ -101,7 +66,7 @@ export default function StudentWalkinPage() {
   return (
     <RoleGuard allowedRoles={["management"]}>
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold"> Student Walk-In Attendance</h1>
+        <h1 className="text-2xl font-bold">Kehadiran Pelajar (Walk In)</h1>
         {Object.keys(groupedKitchen).map((kitchenId) => {
           const kitchenRecords = groupedKitchen[kitchenId];
           const kitchen = kitchenRecords[0].kitchen;
@@ -112,12 +77,12 @@ export default function StudentWalkinPage() {
                 <Table className="w-full">
                   <TableHeader className="bg-gray-100">
                     <TableRow>
-                      <TableHead className="font-bold w-10">No.</TableHead>
-                      <TableHead className="font-bold">Student ID</TableHead>
-                      <TableHead className="font-bold">Name </TableHead>
-                      <TableHead className="font-bold text-center">Faculty</TableHead>
-                      <TableHead className="font-bold text-center"> Check In Time </TableHead>
-                      <TableHead className="font-bold text-center">Activity</TableHead>
+                      <TableHead className="font-bold w-10">Bil.</TableHead>
+                      <TableHead className="font-bold">ID Pelajar</TableHead>
+                      <TableHead className="font-bold">Nama</TableHead>
+                      <TableHead className="font-bold text-center">Fakulti</TableHead>
+                      <TableHead className="font-bold text-center">Waktu Check In</TableHead>
+                      <TableHead className="font-bold text-center">Aktiviti</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -139,9 +104,9 @@ export default function StudentWalkinPage() {
                               </span>
                             ) : (
                               <ul className="text-xs space-y-0.5">
-                                {activity.took_rice && <li>Took rice</li>}
-                                {activity.took_dish && <li>Took dish</li>}
-                                {activity.used_kitchen && <li>Used kitchen</li>}
+                                {activity.took_rice && <li>Menagambil Nasi</li>}
+                                {activity.took_dish && <li>Mengambil Lauk</li>}
+                                {activity.used_kitchen && <li>Menggunakan Dapur</li>}
                                 {activity.took_foodbank && (
                                   <li>
                                     Foodbank:{" "}
@@ -154,7 +119,7 @@ export default function StudentWalkinPage() {
                                   !activity.took_dish &&
                                   !activity.used_kitchen &&
                                   !activity.took_foodbank && (
-                                    <li className="text-muted-foreground">No activity ticked</li>
+                                    <li className="text-muted-foreground">Tiada Aktiviti</li>
                                   )}
                               </ul>
                             )}

@@ -11,14 +11,12 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { Movement } from "@/types/movement";
 
-function todayISO() {return new Date().toLocaleDateString("en-CA");}
-
 export default function HistoryPage() {
   const [history, setHistory] = useState<Movement[]>([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<Movement | null>(null);
   const [search, setSearch] = useState("");
-  const [date, setDate] = useState(todayISO());
+  const [date, setDate] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [locationFilter, setLocationFilter] = useState("all");
   const [kitchenFilter, setKitchenFilter] = useState("all");
@@ -54,35 +52,31 @@ export default function HistoryPage() {
 
   const filteredHistory = useMemo(() => {
     return history.filter((h) => {
-      const matchesSearch = h.display_name
-        .toLowerCase()
-        .includes(search.trim().toLowerCase());
+      const matchesSearch =
+        !search.trim() ||
+        h.display_name.toLowerCase().includes(search.trim().toLowerCase());
 
       const matchesType =
         typeFilter === "all" || h.movement_type === typeFilter;
 
       const location =
-        h.movement_type === "out"
-          ? h.destination
-          : h.kitchen_name;
+        h.movement_type === "out" ? h.destination : h.kitchen_name;
 
       const matchesLocation =
         locationFilter === "all" || location === locationFilter;
-      const matchesKitchen =
-        kitchenFilter === "all" ||
-        h.kitchen_name === kitchenFilter;
 
+      const matchesKitchen =
+        kitchenFilter === "all" || h.kitchen_name === kitchenFilter;
 
       const matchesSource =
-        sourceFilter === "all" ||
-        h.source === sourceFilter;
+        sourceFilter === "all" || h.source === sourceFilter;
 
       const matchesDate =
         !date ||
         new Date(h.created_at).toLocaleDateString("en-CA") === date;
 
       return (
-         matchesSearch &&
+        matchesSearch &&
         matchesType &&
         matchesLocation &&
         matchesDate &&
@@ -90,23 +84,41 @@ export default function HistoryPage() {
         matchesSource
       );
     });
-  }, [ history,
-      search,
-      typeFilter,
-      locationFilter,
-      date,
-      kitchenFilter,
-      sourceFilter]);
+  }, [
+    history,
+    search,
+    typeFilter,
+    locationFilter,
+    date,
+    kitchenFilter,
+    sourceFilter,
+  ]);
+
+  const hasActiveFilters =
+    !!search.trim() ||
+    !!date ||
+    typeFilter !== "all" ||
+    locationFilter !== "all" ||
+    kitchenFilter !== "all" ||
+    sourceFilter !== "all";
+
+  const clearFilters = () => {
+    setSearch("");
+    setDate("");
+    setTypeFilter("all");
+    setLocationFilter("all");
+    setKitchenFilter("all");
+    setSourceFilter("all");
+  };
 
   const stockIn = filteredHistory.filter((h) => h.movement_type === "in");
-  const stockOut = filteredHistory.filter((h) => h.movement_type === "out"
-);
+  const stockOut = filteredHistory.filter((h) => h.movement_type === "out");
 
   const downloadPdf = () => {
     const doc = new jsPDF();
 
     doc.setFontSize(16);
-    doc.text("Inventory History DSM@UMS", 14, 15);
+    doc.text("Ringkasan Inventori DSM@UMS", 14, 15);
 
     doc.setFontSize(10);
     doc.text(
@@ -161,14 +173,13 @@ export default function HistoryPage() {
     <RoleGuard allowedRoles={["management"]}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Inventory History</h1>
+          <h1 className="text-2xl font-bold">Sejarah Pergerakkan Inventori (Masuk / Keluar)</h1>
 
           <Button onClick={downloadPdf} variant="outline">
             <Download className="mr-2 h-4 w-4" />
-            Export PDF
+            Eksport PDF
           </Button>
         </div>
-        
 
         {/* FILTERS */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -181,12 +192,23 @@ export default function HistoryPage() {
               className="w-full max-w-xs rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
             />
 
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
-            />
+            <div className="flex items-center gap-1">
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
+              />
+              {date && (
+                <button
+                  onClick={() => setDate("")}
+                  className="text-xs text-gray-400 hover:text-gray-600"
+                  type="button"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
 
             <select
               value={locationFilter}
@@ -215,6 +237,16 @@ export default function HistoryPage() {
                 </option>
               ))}
             </select>
+
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="text-xs font-medium text-gray-500 underline hover:text-gray-700"
+                type="button"
+              >
+                Clear all filters
+              </button>
+            )}
           </div>
 
           <div className="flex flex-wrap gap-1.5">
@@ -241,7 +273,7 @@ export default function HistoryPage() {
         {/* STOCK IN */}
         <div>
           <h2 className="mb-2 text-lg font-semibold text-green-600">
-            Stock IN
+            Stok Masuk
           </h2>
 
           <MovementTable
@@ -258,7 +290,7 @@ export default function HistoryPage() {
         {/* STOCK OUT */}
         <div>
           <h2 className="mb-2 text-lg font-semibold text-red-600">
-            Stock OUT
+            Stock Keluar
           </h2>
 
           <MovementTable
@@ -269,7 +301,6 @@ export default function HistoryPage() {
             showPrice={false}
             showSource={false}
             showLocation={true}
-
           />
         </div>
 

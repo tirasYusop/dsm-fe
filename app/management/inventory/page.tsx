@@ -9,6 +9,7 @@ import StockMovementModal, { Kitchen } from "@/components/inventory/stockmovemen
 import AddSourceItemDrawer from "@/components/inventory/addsourceitemdrawer";
 import { Button } from "@/components/ui/button";
 import { Table, TableHeader, TableHead, TableRow, TableCell, TableBody } from "@/components/ui/table";
+import type {SourceStock,ItemWithStock} from "@/types/inventory"
 
 const SOURCES = [
   { value: "donation", label: "Donation" },
@@ -18,36 +19,10 @@ const SOURCES = [
   { value: "other", label: "Other" },
 ];
 
-type SourceStock = {
-  id: number;
-  item: number;
-  item_name: string;
-  source: string;
-  total_received: number;
-  latest_added: number;
-  last_updated: string | null;
-  price_per_unit: string;
-};
-
-type KitchenStock = {
-  kitchen_id: number;
-  kitchen_name: string;
-  stock: number;
-  status: string;
-};
-
-type ItemWithStock = {
-  id: number;
-  name: string;
-  unit: string;
-  management_stock: number;
-  kitchens: KitchenStock[];
-};
 
 export default function InventoryPage() {
   const [tab, setTab] = useState<"in" | "out">("in");
   const [source, setSource] = useState("donation");
-
   const [sourceStocks, setSourceStocks] = useState<SourceStock[]>([]);
   const [outItems, setOutItems] = useState<ItemWithStock[]>([]);
   const [loading, setLoading] = useState(false);
@@ -135,8 +110,8 @@ export default function InventoryPage() {
     <RoleGuard allowedRoles={["management"]}>
       <div className="space-y-5">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Inventory</h1>
-          <p className="text-sm text-gray-500">Manage warehouse stock and kitchen transfers in one place.</p>
+          <h1 className="text-2xl font-bold">Inventori</h1>
+          <p className="text-sm text-gray-500">Urus stok gudang dan pemindahan dapur di satu tempat.</p>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -149,7 +124,7 @@ export default function InventoryPage() {
                   tab === key ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
                 }`}
               >
-                {key === "in" ? "Stock In" : "Transfer Out"}
+                {key === "in" ? "Stok Masuk" : "Pindah Keluar"}
               </button>
             ))}
           </div>
@@ -157,7 +132,7 @@ export default function InventoryPage() {
           {tab === "in" && (
             <div className="flex items-center gap-3">
               <SourceFilter sources={SOURCES} selected={source} onSelect={setSource} />
-              <Button onClick={() => setAddItemOpen(true)}>+ Add item</Button>
+              <Button onClick={() => setAddItemOpen(true)}>+ Tambah item</Button>
             </div>
           )}
         </div>
@@ -167,12 +142,12 @@ export default function InventoryPage() {
             <Table className="w-full">
               <TableHeader>
                 <TableRow className="bg-gray-100">
-                  <TableHead className="p-2 text-left font-bold w-10">No.</TableHead>
+                  <TableHead className="p-2 text-left font-bold w-10">Bil.</TableHead>
                   <TableHead className="p-2 text-left font-bold">Item</TableHead>
-                  <TableHead className="p-2 text-left font-bold">Total Received</TableHead>
-                  <TableHead className="p-2 text-left font-bold">Latest Added</TableHead>
-                  <TableHead className="p-2 text-left font-bold">Last Updated</TableHead>
-                  <TableHead className="p-2 text-right font-bold">Action</TableHead>
+                  <TableHead className="p-2 text-left font-bold">Jumlah Diterima</TableHead>
+                  <TableHead className="p-2 text-left font-bold">Terbaharu Ditambah</TableHead>
+                  <TableHead className="p-2 text-left font-bold">Kemas kini terakhir</TableHead>
+                  <TableHead className="p-2 text-right font-bold">Tindakan</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -197,7 +172,7 @@ export default function InventoryPage() {
                             setMovementTarget({ id: s.item, name: s.item_name, unit: "" })
                           }
                         >
-                          Add stock
+                          Tambah Stok
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -217,7 +192,7 @@ export default function InventoryPage() {
                       {k.kitchen_name}
                     </TableHead>
                   ))}
-                  <TableHead className="text-right">Action</TableHead>
+                  <TableHead className="text-right">Tindakan</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -246,7 +221,7 @@ export default function InventoryPage() {
                             setMovementTarget({ id: item.id, name: item.name, unit: item.unit })
                           }
                         >
-                          Transfer
+                          Pindahkan
                         </Button>
                       </TableCell>
                     </TableRow>
