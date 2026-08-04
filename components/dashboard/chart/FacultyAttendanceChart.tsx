@@ -32,10 +32,10 @@ export default function FacultyAttendanceChart({
   return (
     <div className="lg:col-span-2 border rounded-2xl bg-white p-6 shadow-sm">
       <h2 className="font-semibold text-lg text-[#16211C] mb-1">
-        Attendance by Faculty
+        Kehadiran Mengikut Fakulti
       </h2>
       <p className="text-sm text-[#5B7B87] mb-4">
-        All-time check-ins, walk-in + booking combined.
+        Jumlah kehadiran keseluruhan, gabungan daftar masuk terus (walk-in) dan tempahan.
       </p>
 
       {loading ? (
@@ -44,7 +44,7 @@ export default function FacultyAttendanceChart({
         </p>
       ) : data.length === 0 ? (
         <p className="text-sm text-[#9CA3AF] py-10 text-center">
-          No attendance records yet.
+          Tiada Rekod Kehadiran .. 
         </p>
       ) : (
         <ResponsiveContainer width="100%" height={320}>

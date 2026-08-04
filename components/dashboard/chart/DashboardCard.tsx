@@ -7,7 +7,7 @@ type DashboardCardProps = {
 
 export default function DashboardCard({ title, value, icon, accent }: DashboardCardProps) {
   return (
-    <div className="border rounded-2xl bg-white p-5 shadow-sm">
+    <div className="border rounded-2xl bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-center justify-between mb-3">
         <p className="text-sm text-[#5B7B87]">{title}</p>
         <span

@@ -21,9 +21,9 @@ export default function InventoryBySourceChart({
   return (
     <div className="lg:col-span-3 border rounded-2xl bg-white p-6 shadow-sm">
       <div className="flex items-center justify-between mb-1">
-        <h2 className="font-semibold text-lg text-[#16211C]">Inventory by Source</h2>
+        <h2 className="font-semibold text-lg text-[#16211C]">Inventori Mengikut Sumber</h2>
       </div>
-      <p className="text-sm text-[#5B7B87] mb-4">Total quantity received per source, all time.</p>
+      <p className="text-sm text-[#5B7B87] mb-4">Jumlah kuantiti yang diterima mengikut sumber, sepanjang masa.</p>
 
       {loading ? (
         <p className="text-sm text-[#9CA3AF] py-10 text-center">Loading...</p>
