@@ -5,8 +5,8 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import AOSInit from "@/components/landing/aos-init"
-//import ParticleBackground from "@/components/landing/particle-bg"
-import InventorySummary from "@/components/landing/inventory-summary"
+import ParticleBackground from "@/components/landing/particle-bg"
+import StudentSummary from "@/components/landing/inventory-summary"
 import Image from "next/image"
 import { FaFacebook,FaTiktok, FaYoutube ,FaGlobe} from "react-icons/fa"
 import PosterCarousel from "@/components/landing/poster-carousel"
@@ -96,7 +96,7 @@ export default function LandingPage() {
   return (
     <>
       <AOSInit />
-      {/*<ParticleBackground />*/}
+        <ParticleBackground />
       {/* ===== HEADER ===== */}
       <header
         className="fixed top-0 z-50 w-full border-b border-white/10 backdrop-blur-xl"
@@ -104,9 +104,9 @@ export default function LandingPage() {
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-2">
-            <Image src="/DAPUR.png" alt="Dapur Siswa" width={36} height={36} className="h-8 w-8 object-contain sm:h-9 sm:w-9" />
+            <Image src="/DAPUR.png" alt="Dapur Siswa Madani @ UMS" width={36} height={36} className="h-8 w-8 object-contain sm:h-9 sm:w-9" />
             <span className="font-['Playfair_Display'] text-sm font-semibold text-white sm:text-lg">
-              Dapur Siswa Madani
+              Dapur Siswa Madani @ UMS
             </span>
           </div>
 
@@ -208,13 +208,13 @@ export default function LandingPage() {
             data-aos-delay="100"
           >
             <Sparkles className="h-4 w-4" />
-            Sistem Pengurusan Dapur Siswa
+            Sistem Pengurusan Dapur Siswa Madani @ UMS
           </div>
 
           {/* Tajuk utama */}
           <div data-aos="fade-up" data-aos-delay="200" className="flex flex-col items-center">
             <h1 className="font-['Playfair_Display'] max-w-4xl text-4xl font-bold leading-[1.1] tracking-tight sm:text-6xl md:text-7xl lg:text-8xl">
-              <span className="text-white">Dapur Siswa</span>{" "}
+              <span className="text-white">Dapur Siswa Madani @ UMS</span>{" "}
               <span className="relative inline-block bg-gradient-to-r from-cyan-300 via-blue-200 to-white bg-clip-text text-transparent drop-shadow-sm animate-gradient-x bg-[length:200%_auto]">
                 Madani
               </span>
@@ -274,6 +274,12 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section id="inventori" className="relative overflow-hidden px-4 py-1 sm:px-6 sm:py-10">
+      <div className="mb-10 text-center sm:mb-16" data-aos="fade-up">
+        <StudentSummary />
+        </div>
+      </section>
+
       {/* ===== POSTER CAROUSEL ===== */}
       <section id="poster" className="relative overflow-hidden px-4 py-16 sm:px-6 sm:py-24">
         <div className="mb-10 text-center sm:mb-16" data-aos="fade-up">
@@ -285,7 +291,7 @@ export default function LandingPage() {
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-sm text-muted-foreground sm:text-base">
             Ikuti panduan penggunaan dapur dengan betul untuk memastikan kebersihan,
-            keselamatan, dan keselesaan bersama sepanjang berada di Dapur Siswa Madani.
+            keselamatan, dan keselesaan bersama sepanjang berada di Dapur Siswa Madani @ UMS.
           </p>
         </div>
 
@@ -316,9 +322,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="inventori" className="relative overflow-hidden px-4 py-1 sm:px-6 sm:py-10">
-        <InventorySummary />
-      </section>
+
 
       {/* ===== STATS BAR ===== */}
       <section className="relative border-y bg-white/60 backdrop-blur-xl dark:bg-background/60">
@@ -549,7 +553,7 @@ export default function LandingPage() {
 
           <div className="flex flex-col items-center gap-2 text-xs text-muted-foreground sm:flex-row sm:gap-6 sm:text-sm">
             <Link href="/login" className="transition-colors hover:text-blue-600">Log Masuk</Link>
-            <span>&copy; {new Date().getFullYear()} Dapur Siswa. All rights reserved.</span>
+            <span>&copy; {new Date().getFullYear()} Dapur Siswa Madani @ UMS. All rights reserved.</span>
           </div>
         </div>
       </footer>
