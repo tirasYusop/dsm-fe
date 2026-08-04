@@ -67,6 +67,7 @@ export default function PosterCarousel({ posters, intervalMs = 5000 }: PosterCar
                 fill
                 className="object-contain"
                 priority={index === 0}
+                sizes="(max-width: 1024px) 100vw, 50vw"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
               <div className="absolute bottom-3 left-3 text-left text-white sm:bottom-4 sm:left-4">
@@ -134,7 +135,7 @@ export default function PosterCarousel({ posters, intervalMs = 5000 }: PosterCar
                   alt={selected.title}
                   fill
                   className="object-contain"
-                  sizes="100vw"
+                  sizes="(max-width: 1024px) 100vw, 50vw"
                 />
               </div>
 
