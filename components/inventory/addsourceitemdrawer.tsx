@@ -3,15 +3,8 @@
 import { useEffect, useState } from "react";
 import API from "@/lib/api1";
 import { Button } from "@/components/ui/button";
+import type {Item} from "@/types/inventory"
 
-type Item = {
-  id: number;
-  name: string;
-  display_name: string;
-  unit: string;
-  package_size: string | null;
-  price_per_unit: string | null;
-};
 
 type Props = {
   open: boolean;
@@ -25,20 +18,15 @@ export default function AddSourceItemDrawer({ open, source, sourceLabel, onClose
   const [items, setItems] = useState<Item[]>([]);
   const [selectedItemId, setSelectedItemId] = useState("");
   const [creatingNew, setCreatingNew] = useState(false);
-
-  // new-item fields
   const [name, setName] = useState("");
   const [unit, setUnit] = useState("");
   const [packageSize, setPackageSize] = useState("");
   const [pricePerUnit, setPricePerUnit] = useState("");
-
-  // stock-in fields
   const [quantity, setQuantity] = useState("");
   const [unitPrice, setUnitPrice] = useState("");
   const [remarks, setRemarks] = useState("");
   const [image, setImage] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
-
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -121,14 +109,14 @@ export default function AddSourceItemDrawer({ open, source, sourceLabel, onClose
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-              Add stock · {sourceLabel}
+              Tambah Stok · {sourceLabel}
             </p>
             <h2 className="text-lg font-semibold text-gray-900">
               {creatingNew ? "New item" : "Select item"}
             </h2>
           </div>
           <button onClick={onClose} className="text-xl leading-none text-gray-400 hover:text-gray-600">
-            ×
+            X
           </button>
         </div>
 
@@ -142,7 +130,7 @@ export default function AddSourceItemDrawer({ open, source, sourceLabel, onClose
                   value={selectedItemId}
                   onChange={(e) => setSelectedItemId(e.target.value)}
                 >
-                  <option value="">Select item</option>
+                  <option value="">Pilih Item</option>
                   {items.map((item) => (
                     <option key={item.id} value={item.id}>
                       {item.display_name}
@@ -151,7 +139,7 @@ export default function AddSourceItemDrawer({ open, source, sourceLabel, onClose
                   ))}
                 </select>
                 <Button type="button" variant="outline" onClick={() => setCreatingNew(true)}>
-                  + New
+                  + Baru
                 </Button>
               </div>
             </div>
@@ -180,7 +168,7 @@ export default function AddSourceItemDrawer({ open, source, sourceLabel, onClose
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Package size</label>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Saiz</label>
                   <input
                     type="number"
                     className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
@@ -192,7 +180,7 @@ export default function AddSourceItemDrawer({ open, source, sourceLabel, onClose
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                  Default price per package (RM)
+                  Harga setiap pakej (RM) (Default)
                 </label>
                 <input
                   type="number"
@@ -207,7 +195,7 @@ export default function AddSourceItemDrawer({ open, source, sourceLabel, onClose
                 className="text-sm text-gray-500 hover:text-gray-700"
                 onClick={() => setCreatingNew(false)}
               >
-                ← Back to existing items
+                ← Kembali kepada item sedia ada
               </button>
             </div>
           )}
@@ -235,7 +223,7 @@ export default function AddSourceItemDrawer({ open, source, sourceLabel, onClose
           </div>*/}
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Remarks</label>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Catatan</label>
             <textarea
               rows={2}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
@@ -246,7 +234,7 @@ export default function AddSourceItemDrawer({ open, source, sourceLabel, onClose
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Proof image</label>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Imej bukti</label>
             <input type="file" accept="image/*" className="text-sm" onChange={(e) => handleImage(e.target.files?.[0] || null)} />
             {preview && (
               <div className="relative mt-2 h-32 w-32">
@@ -268,10 +256,10 @@ export default function AddSourceItemDrawer({ open, source, sourceLabel, onClose
 
         <div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-4">
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            Batal
           </Button>
           <Button disabled={!canSubmit || saving} onClick={handleSubmit}>
-            {saving ? "Saving..." : "Add stock"}
+            {saving ? "Saving..." : "Tambah Stok"}
           </Button>
         </div>
       </div>

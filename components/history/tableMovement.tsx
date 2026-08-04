@@ -37,19 +37,19 @@ export default function MovementTable({
             <TableRow>
               <TableHead className="p-2 text-left w-10">No.</TableHead>
               <TableHead className="p-2 text-left">Item</TableHead>
-              <TableHead className="p-2 text-left">Type</TableHead>
+              <TableHead className="p-2 text-left">Jenis</TableHead>
               <TableHead className="p-2 text-left">Qty</TableHead>
               {showPrice && (
-                <TableHead className="p-2 text-left">Total Price</TableHead>
+                <TableHead className="p-2 text-left">Jumlah Harga</TableHead>
               )}
-              <TableHead className="p-2 text-left">Remark</TableHead>
+              <TableHead className="p-2 text-left">Catatan</TableHead>
               {showSource && (
-                <TableHead className="p-2 text-left">Source</TableHead>
+                <TableHead className="p-2 text-left">Sumber</TableHead>
               )}
               {showLocation && (
-                <TableHead className="p-2 text-left">Location</TableHead>
+                <TableHead className="p-2 text-left">Tempat</TableHead>
               )}
-              <TableHead className="p-2 text-left">Date & Time</TableHead>
+              <TableHead className="p-2 text-left">Tarikh Dan Masa</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

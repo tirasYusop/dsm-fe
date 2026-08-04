@@ -2,23 +2,15 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import type {StockMovementSubmitData} from "@/types/inventory"
 
 export type Kitchen = { id: number; code: string };
-
-export type StockMovementSubmitData = {
-  quantity: number;
-  kitchenId?: number;
-  isFoodbank?: boolean;
-  unitPrice?: number;
-  remarks: string;
-  image: File | null;
-};
 
 type Props = {
   mode: "in" | "out";
   item: { id: number; name: string; unit: string } | null;
-  sourceLabel?: string; // e.g. "Donation" — only used in "in" mode
-  kitchens?: Kitchen[]; // only used in "out" mode
+  sourceLabel?: string; 
+  kitchens?: Kitchen[]; 
   onClose: () => void;
   onSubmit: (data: StockMovementSubmitData) => Promise<void>;
 };

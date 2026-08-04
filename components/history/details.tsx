@@ -21,17 +21,17 @@ export default function MovementDetailPanel({
     <Card>
       <div className="p-4">
         <CardHeader className="text-xl font-bold mb-4">
-          Movement Detail
+         Butiran Pergerakan Item
         </CardHeader>
         <CardContent className="space-y-2 pl-20">
           <p>
             <b>Item:</b> {item.item_name}
           </p>
           <p>
-            <b>Type:</b> {item.movement_type}
+            <b>Jenis:</b> {item.movement_type}
           </p>
           <p>
-            <b>Quantity:</b> {item.quantity}
+            <b>Kuantiti:</b> {item.quantity}
           </p>
           {item.movement_type === "out" ? (
             <>
@@ -45,7 +45,7 @@ export default function MovementDetailPanel({
               <p><b>Remark:</b> {item.remarks || "-"}</p>
             </>
           )}
-          <p><b>Date:</b>{" "}
+          <p><b>Tarikh:</b>{" "}
             {new Date(item.created_at).toLocaleString("en-MY", {
               day: "2-digit",
               month: "short",
@@ -56,10 +56,10 @@ export default function MovementDetailPanel({
             })}
           </p>
           {item.unit_price !== undefined && (
-            <p><b>Unit Price:</b> RM {item.unit_price} </p>
+            <p><b>Unit Harga:</b> RM {item.unit_price} </p>
           )}
           {item.total_amount !== undefined && (
-            <p><b>Total:</b> RM {item.total_amount}</p>
+            <p><b>Jumlah:</b> RM {item.total_amount}</p>
           )}
           {item.proof_image && (
             <img src={item.proof_image}className="w-100 h-100 mt-3 rounded border"/>
@@ -69,7 +69,7 @@ export default function MovementDetailPanel({
           onClick={onClose}
           className="mt-4 w-full destructive text-white py-2 rounded"
         >
-          Close
+          Tutup
         </Button>
       </div>
     </Card>

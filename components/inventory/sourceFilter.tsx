@@ -1,7 +1,4 @@
-type Source = {
-  value: string;
-  label: string;
-};
+import type {Source} from "@/types/inventory"
 
 type Props = {
   sources: Source[];

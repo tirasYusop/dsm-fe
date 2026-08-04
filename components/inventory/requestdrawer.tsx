@@ -3,20 +3,13 @@
 import { useEffect, useState } from "react";
 import API from "@/lib/api1";
 import { Button } from "@/components/ui/button";
+import type {Item} from "@/types/inventory"
 
-type Item = {
-  id: number;
-  name: string;
-  display_name: string;
-  unit: string;
-  package_size: string | null;
-  price_per_unit: string | null;
-};
 
 type Props = {
   open: boolean;
   onClose: () => void;
-  onDone: () => void; // parent refetches the request list
+  onDone: () => void;
 };
 
 export default function RequestFormDrawer({ open, onClose, onDone }: Props) {

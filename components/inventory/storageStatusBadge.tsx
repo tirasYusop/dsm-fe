@@ -9,13 +9,13 @@ export default function StorageStatusBadge({ log }: { log: StorageLike }) {
   let classes: string;
 
   if (log.status === "removed") {
-    text = "Removed";
+    text = "Dikeluarkan";
     classes = "bg-gray-100 text-gray-600 ring-gray-400/20";
   } else if (log.status === "expired" || log.is_past_limit) {
-    text = "Expired";
+    text = "Tamat tempoh";
     classes = "bg-red-50 text-red-700 ring-red-600/20";
   } else if (log.days_left <= 1) {
-    text = `Expires in ${log.days_left}d`;
+    text = `Luput dalam ${log.days_left}d`;
     classes = "bg-amber-50 text-amber-700 ring-amber-600/20";
   } else {
     text = `${log.days_left}d left`;
