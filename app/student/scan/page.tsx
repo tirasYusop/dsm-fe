@@ -46,10 +46,10 @@ export default function ScanPage() {
       <div>
         <h1 className="flex items-center gap-2 text-lg font-semibold text-gray-900 sm:text-xl">
           <QrCode className="h-5 w-5 text-gray-400" />
-          Scan kitchen QR
+          Imbas QR dapur
         </h1>
         <p className="text-sm text-gray-500">
-          Point your camera at the QR code posted at the kitchen entrance.
+          Halakan kamera anda ke arah kod QR yang dipaparkan di pintu masuk dapur.
         </p>
       </div>
 
@@ -61,7 +61,7 @@ export default function ScanPage() {
 
       {status === "invalid" && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          That QR code isn't recognized. Make sure you're scanning the code at a kitchen entrance, then try again.
+          Kod QR itu tidak dapat dikesan. Pastikan anda mengimbas kod tersebut di pintu masuk dapur, kemudian cuba lagi.
         </div>
       )}
     </div>

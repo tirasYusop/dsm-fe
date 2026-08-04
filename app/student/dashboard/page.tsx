@@ -15,7 +15,7 @@ export default function StudentDashboard() {
       <div className="mx-auto space-y-6 p-3 sm:p-4">
         <div>
           <h1 className="text-lg font-semibold text-gray-900 sm:text-xl">Dashboard</h1>
-          <p className="text-sm text-gray-500">Your bookings and kitchen storage at a glance.</p>
+          <p className="text-sm text-gray-500">Gambaran keseluruhan tempahan dan ruang penyimpanan dapur anda.</p>
         </div>
 
         <StatCards />

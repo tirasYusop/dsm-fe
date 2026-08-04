@@ -6,29 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import RoleGuard from "@/components/auth/roleguard";
 import { CalendarDays, Clock, Users, ChefHat, CheckCircle2, ChevronDown } from "lucide-react";
+import type {Booking} from "@/types/kitchen"
 
-type Participant = {
-  id: number;
-  name: string;
-  student_id: string;
-  faculty: string;
-  is_owner: boolean;
-};
-
-type Booking = {
-  id: number;
-  slot_date: string;
-  start_time: string;
-  end_time: string;
-  number_of_people: number;
-  purpose: string;
-  status: string;
-  attended: boolean;
-  is_passed: boolean;
-  display_status: "confirmed" | "attended" | "expired" | "cancelled";
-  kitchen_name: string;
-  participants: Participant[];
-};
 
 function statusBadge(booking: Booking) {
   switch (booking.display_status) {
@@ -66,7 +45,7 @@ export default function MyBookingsPage() {
   };
 
   const cancelBooking = async (id: number) => {
-    if (!window.confirm("Cancel this booking? This can't be undone.")) return;
+    if (!window.confirm("Batalkan tempahan ini? Tindakan ini tidak boleh dibatalkan.")) return;
 
     setCancellingId(id);
     try {
@@ -74,7 +53,7 @@ export default function MyBookingsPage() {
       fetchBookings();
     } catch (err: any) {
       console.log(err);
-      alert(err?.response?.data?.error ?? "Failed to cancel booking");
+      alert(err?.response?.data?.error ?? "Gagal membatalkan tempahan");
     } finally {
       setCancellingId(null);
     }
@@ -86,17 +65,17 @@ export default function MyBookingsPage() {
     <RoleGuard allowedRoles={["student"]}>
       <div className="mx-auto space-y-6 p-3">
         <div>
-          <h1 className="text-lg font-semibold text-gray-900 sm:text-xl">My bookings</h1>
-          <p className="text-sm text-gray-500">Your kitchen reservations, past and upcoming.</p>
+          <h1 className="text-lg font-semibold text-gray-900 sm:text-xl">Tempahan saya</h1>
+          <p className="text-sm text-gray-500">Tempahan dapur anda, yang telah lepas dan yang akan datang.</p>
         </div>
 
         {loading ? (
-          <p className="text-sm text-gray-500">Loading bookings...</p>
+          <p className="text-sm text-gray-500">Sedang memuatkan tempahan...</p>
         ) : bookings.length === 0 ? (
           <Card className="border-gray-100 shadow-sm">
             <CardContent className="flex flex-col items-center gap-2 p-8 text-center">
               <CalendarDays className="h-8 w-8 text-gray-300" />
-              <p className="text-sm text-gray-500">No bookings yet.</p>
+              <p className="text-sm text-gray-500">Belum ada tempahan.</p>
             </CardContent>
           </Card>
         ) : (
@@ -135,7 +114,7 @@ export default function MyBookingsPage() {
                     {booking.attended && (
                       <p className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
                         <CheckCircle2 className="h-3.5 w-3.5" />
-                        Checked in
+                        Sudah daftar masuk
                       </p>
                     )}
 
@@ -173,7 +152,7 @@ export default function MyBookingsPage() {
                         onClick={() => cancelBooking(booking.id)}
                         disabled={cancellingId === booking.id}
                       >
-                        {cancellingId === booking.id ? "Cancelling..." : "Cancel booking"}
+                        {cancellingId === booking.id ? "Sedang membatalkan..." : "Batalkan tempahan"}
                       </Button>
                     )}
                   </CardContent>

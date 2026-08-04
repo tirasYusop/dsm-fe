@@ -31,6 +31,10 @@ export default function DashboardLayout({
       label: "Storage",
       items: [{ label: "Raw Material Storage", href: "/student/storage/" }],
     },
+    {
+      label: "Feedback",
+      items: [{ label: "Feedback", href: "/student/feedback/" }],
+    },
   ];
 
   return (

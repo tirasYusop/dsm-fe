@@ -7,22 +7,7 @@ import DateNavigator from "@/components/booking/date";
 import SlotList from "@/components/booking/slotList";
 import BookingForm from "@/components/booking/bookingForm";
 import { Friend } from "@/components/booking/friend";
-
-type Slot = {
-  id: number;
-  date: string;
-  start_time: string;
-  end_time: string;
-  available_capacity: number;
-  status: string;
-};
-
-type Kitchen = {
-  id: number;
-  name: string;
-  code: string;
-  is_active: boolean;
-};
+import type {Slot,Kitchen} from "@/types/kitchen"
 
 const emptyFriend = (): Friend => ({ name: "", student_id: "", faculty: "" });
 
@@ -132,8 +117,8 @@ export default function BookingPage() {
     const slotLabel = `${bookingSlot.date}, ${bookingSlot.start_time} - ${bookingSlot.end_time}`;
     const confirmed = window.confirm(
       participants.length > 0
-        ? `Book ${slotLabel} for you and ${participants.length} friend(s)?`
-        : `Are you sure you want to book ${slotLabel}?`
+        ? `Tempah ${slotLabel} untuk anda dan  ${participants.length} rakan(s)`
+        : `Adakah anda pasti mahu menempah  ${slotLabel}?`
     );
 
     if (!confirmed) return;
@@ -178,8 +163,8 @@ export default function BookingPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-3 sm:space-y-5 sm:p-4">
       <div>
-        <h1 className="text-lg font-semibold text-gray-900 sm:text-xl">Book Dapur Siswa</h1>
-        <p className="text-sm text-gray-500">Pick a kitchen, date, and time slot to reserve.</p>
+        <h1 className="text-lg font-semibold text-gray-900 sm:text-xl">Buku Dapur Siswa</h1>
+        <p className="text-sm text-gray-500">Pilih dapur, tarikh, dan slot masa untuk membuat tempahan.</p>
       </div>
 
       <KitchenSelector kitchens={kitchens} selectedKitchen={selectedKitchen} onSelect={setSelectedKitchen} />

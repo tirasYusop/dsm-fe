@@ -12,10 +12,10 @@ type FoodbankItem = { id: number; name: string; unit: string; available: number 
 type FoodbankSelection = { id: number; quantity: number };
 
 const CHECKLIST = [
-  { key: "usedKitchen", label: "Use kitchen", desc: "Cooked or prepared food here", icon: ChefHat },
-  { key: "tookRice", label: "Take rice", desc: "Took rice from the kitchen", icon: Utensils },
-  { key: "tookDish", label: "Take dish", desc: "Took a prepared dish", icon: Soup },
-  { key: "tookFoodbank", label: "Take foodbank", desc: "Picked up foodbank items", icon: ShoppingBasket },
+  { key: "usedKitchen", label: "Menggunakan Dapur", desc: "Cooked or prepared food here", icon: ChefHat },
+  { key: "tookRice", label: "Mengambil Nasi", desc: "Took rice from the kitchen", icon: Utensils },
+  { key: "tookDish", label: "Mengambil Lauk", desc: "Took a prepared dish", icon: Soup },
+  { key: "tookFoodbank", label: "Mengambil Foodbank", desc: "Picked up foodbank items", icon: ShoppingBasket },
 ] as const;
 
 export default function ActivityPage() {
@@ -103,13 +103,13 @@ export default function ActivityPage() {
   return (
     <div className="mx-auto max-w-md space-y-5 p-3 sm:p-4">
       <div>
-        <h1 className="text-lg font-semibold text-gray-900 sm:text-xl">What did you do today?</h1>
-        <p className="text-sm text-gray-500">Check off everything that applies to this visit.</p>
+        <h1 className="text-lg font-semibold text-gray-900 sm:text-xl">Apa yang anda lakukan hari ini?</h1>
+        <p className="text-sm text-gray-500">Tandakan semua perkara yang berkenaan dengan kunjungan ini.</p>
       </div>
 
       <Card className="border-gray-100 shadow-sm">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">Activity checklist</CardTitle>
+          <CardTitle className="text-sm font-semibold">Senarai semak aktiviti</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           {CHECKLIST.map(({ key, label, desc, icon: Icon }) => (
@@ -131,7 +131,7 @@ export default function ActivityPage() {
               {loading ? (
                 <p className="text-sm text-muted-foreground">Loading foodbank stock...</p>
               ) : foodbankItems.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No foodbank stock available.</p>
+                <p className="text-sm text-muted-foreground">Tiada stok bank makanan tersedia.</p>
               ) : (
                 foodbankItems.map((item) => {
                   const sel = selectedFoodbank.find((x) => x.id === item.id);
@@ -171,10 +171,10 @@ export default function ActivityPage() {
             {submitting ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Saving...
+                Sedang menyimpan...
               </span>
             ) : (
-              "Submit activity"
+              "Hantar aktiviti"
             )}
           </Button>
         </CardContent>

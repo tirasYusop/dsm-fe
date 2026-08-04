@@ -4,22 +4,7 @@ import { useEffect, useState } from "react";
 import API from "@/lib/api1";
 import RoleGuard from "@/components/auth/roleguard";
 import { Button } from "@/components/ui/button";
-
-type StorageLog = {
-  id: number;
-  item_name: string;
-  kitchen: number;
-  kitchen_name: string;
-  date_stored: string;
-  proof_image: string | null;
-  status: "stored" | "removed" | "expired";
-  expiry_date: string;
-  days_left: number;
-  is_past_limit: boolean;
-  created_at: string;
-};
-
-type Kitchen = { id: number; code: string };
+import type {StorageLog, Kitchen} from "@/types/kitchen"
 
 function urgencyStyles(log: StorageLog) {
   if (log.status === "removed") {
@@ -37,7 +22,6 @@ function urgencyStyles(log: StorageLog) {
 export default function StudentStoragePage() {
   const [logs, setLogs] = useState<StorageLog[]>([]);
   const [loading, setLoading] = useState(false);
-
   const [kitchens, setKitchens] = useState<Kitchen[]>([]);
   const [selectedKitchen, setSelectedKitchen] = useState("");
   const [itemName, setItemName] = useState("");
@@ -133,25 +117,24 @@ export default function StudentStoragePage() {
     <RoleGuard allowedRoles={["student"]}>
       <div className="mx-auto max-w-2xl space-y-6 sm:p-4">
         <div>
-          <h1 className="text-lg font-semibold text-gray-900 sm:text-xl">Kitchen Storage</h1>
+          <h1 className="text-lg font-semibold text-gray-900 sm:text-xl">Ruang Penyimpanan Dapur</h1>
           <p className="text-sm text-gray-500">
-            Log items you put into storage. Anything left past 3 days will be flagged and both you
-            and management will be notified.
+            Catatkan barang yang anda simpan. Sebarang barang yang ditinggalkan melebihi 3 hari akan ditandakan, dan anda serta pihak pengurusan akan dimaklumkan.
           </p>
         </div>
 
         {/* Log a new item */}
         <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
-          <h2 className="text-sm font-semibold text-gray-900">Log a new item</h2>
+          <h2 className="text-sm font-semibold text-gray-900">Catatkan item baharu</h2>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Kitchen</label>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Dapur</label>
             <select
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
               value={selectedKitchen}
               onChange={(e) => setSelectedKitchen(e.target.value)}
             >
-              <option value="">Select kitchen</option>
+              <option value="">Pilih dapur</option>
               {kitchens.map((k) => (
                 <option key={k.id} value={k.id}>
                   {k.code}
@@ -161,7 +144,7 @@ export default function StudentStoragePage() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Item name</label>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Nama Item</label>
             <input
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
               placeholder="e.g. Chicken breast"
@@ -171,7 +154,7 @@ export default function StudentStoragePage() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Date put in storage</label>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Tarikh disimpan</label>
             <input
               type="date"
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
@@ -182,7 +165,7 @@ export default function StudentStoragePage() {
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">
-              Proof image <span className="font-normal text-gray-400">(optional)</span>
+              Imej bukti <span className="font-normal text-gray-400">(optional)</span>
             </label>
             <input
               type="file"
@@ -211,12 +194,12 @@ export default function StudentStoragePage() {
 
         {/* Current + past logs */}
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-gray-900">Your storage log</h2>
+          <h2 className="text-sm font-semibold text-gray-900">Log penyimpanan anda</h2>
 
           {loading ? (
             <p className="text-sm text-gray-500">Loading...</p>
           ) : logs.length === 0 ? (
-            <p className="text-sm text-gray-500">Nothing logged yet.</p>
+            <p className="text-sm text-gray-500">Tiada apa-apa yang direkodkan lagi.</p>
           ) : (
             logs.map((log) => {
               const urgency = urgencyStyles(log);
@@ -249,7 +232,7 @@ export default function StudentStoragePage() {
                     </span>
                     {log.status === "stored" && (
                       <Button size="sm" variant="outline" onClick={() => handleRemove(log.id)}>
-                        Mark removed
+                        Tanda dikeluarkan
                       </Button>
                     )}
                   </div>

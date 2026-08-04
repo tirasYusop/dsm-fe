@@ -7,21 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import RoleGuard from "@/components/auth/roleguard";
 import { ChefHat, CalendarCheck, DoorOpen, Clock, Loader2 } from "lucide-react";
-
-type Kitchen = {
-  id: number;
-  name: string;
-  code: string;
-};
-
-type Booking = {
-  id: number;
-  slot_date: string;
-  start_time: string;
-  end_time: string;
-  status: string;
-  attended: boolean;
-};
+import type {Kitchen,Booking} from "@/types/kitchen"
 
 export default function CheckinPage() {
   const router = useRouter();
