@@ -5,12 +5,14 @@ import API from "@/lib/api1";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableHeader, TableHead, TableRow, TableBody, TableCell } from "@/components/ui/table";
+import { TableRow, TableCell } from "@/components/ui/table";
 import RoleGuard from "@/components/auth/roleguard";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Download, Check, PackageCheck, X, ShoppingCart } from "lucide-react";
 import type { Request,ItemInfo,GroupedRequests,StockCheck} from "@/types/kitchen"
+import PageHeader from "@/components/ui/page-header";
+import DataTable from "@/components/table";
 
 const STATUS_BADGE_STYLES: Record<string, string> = {
     approved: "bg-green-100 text-green-700 hover:bg-green-100",
@@ -98,7 +100,7 @@ export default function RequestListPage() {
 
     const fetchRequests = async () => {
         const res = await API.get("/requests/");
-        setRequests(res.data);
+        setRequests(res.data.results ?? res.data);
     };
 
     const fetchStock = async () => {
@@ -345,23 +347,10 @@ export default function RequestListPage() {
     return (
         <RoleGuard allowedRoles={["management"]}>
             <div className="space-y-8">
-                <div className="flex items-center justify-between gap-3">
-                    <h1 className="text-2xl font-bold">Permintaan Inventori</h1>
-                    <div className="text-right">
-                        <Button onClick={downloadPdf} variant="outline">
-                            <Download className="h-4 w-4 mr-1.5" />
-                            Download Checklist PDF{" "}
-                            {(search || statusFilter !== "all" || kitchenFilter !== "all") && "(filtered)"}
-                        </Button>
-                        {statusFilter !== "all" && statusFilter !== "pending" && (
-                            <p className="mt-1 text-xs text-gray-400">
-                                Hanya permintaan yang belum selesai akan dijana dalam senarai pembelian -- "
-                                {STATUS_FILTERS.find((f) => f.value === statusFilter)?.label}" filter
-                                akan menghasilkan senarai semak kosong.
-                            </p>
-                        )}
-                    </div>
-                </div>
+               <PageHeader
+                    title="Permintaan Inventori"
+                    action={<Button onClick={downloadPdf} variant="outline"><Download className="h-4 w-4 mr-1.5" />Download Checklist PDF</Button>}
+                    />
 
                 {/* FILTERS */}
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -417,47 +406,34 @@ export default function RequestListPage() {
                     <div key={group.kitchen_name} className="space-y-3">
                         <h2 className="text-lg font-semibold">{group.kitchen_name}</h2>
 
-                        <Table className="w-full border bg-white hidden md:table">
-                            <TableHeader>
-                                <TableRow className="bg-gray-100">
-                                    <TableHead className="font-bold w-10">Bil.</TableHead>
-                                    <TableHead className="font-bold">Item</TableHead>
-                                    <TableHead className="font-bold">Kuantit</TableHead>
-                                    <TableHead className="font-bold">Sebab</TableHead>
-                                    <TableHead className="font-bold">Stok Check</TableHead>
-                                    <TableHead className="font-bold">Status</TableHead>
-                                    <TableHead className="text-center font-bold">Action</TableHead>
+                        <DataTable
+                            columns={[
+                                { key: "no", label: "Bil.", className: "w-10" },
+                                { key: "item", label: "Item" },
+                                { key: "qty", label: "Kuantiti" },
+                                { key: "reason", label: "Sebab" },
+                                { key: "stock", label: "Stok Check" },
+                                { key: "status", label: "Status" },
+                                { key: "action", label: "Action", align: "center" as const },
+                            ]}
+                            data={group.requests}
+                            emptyMessage="Tiada permintaan."
+                            renderRow={(req, index) => (
+                                <TableRow key={req.id}>
+                                <TableCell className="font-medium">{index + 1}</TableCell>
+                                <TableCell className="font-medium">{getItemLabel(req)}</TableCell>
+                                <TableCell>{req.quantity}</TableCell>
+                                <TableCell className="text-gray-600">{req.reason}</TableCell>
+                                <TableCell><StockCheckBadge check={getStockCheck(req)} /></TableCell>
+                                <TableCell><Badge className={getBadgeStyle(req.status)}>{req.status.toUpperCase()}</Badge></TableCell>
+                                <TableCell className="p-3">
+                                    <div className="flex gap-2 justify-center flex-wrap">
+                                    <RequestActions req={req} onApprove={approve} onFulfill={fulfillFromStock} onReject={reject} />
+                                    </div>
+                                </TableCell>
                                 </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {group.requests.map((req,index) => (
-                                    <TableRow key={req.id}>
-                                        <TableCell className="font-medium">{index+1}</TableCell>
-                                        <TableCell className="font-medium">{getItemLabel(req)}</TableCell>
-                                        <TableCell>{req.quantity}</TableCell>
-                                        <TableCell className="text-gray-600">{req.reason}</TableCell>
-                                        <TableCell>
-                                            <StockCheckBadge check={getStockCheck(req)} />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge className={getBadgeStyle(req.status)}>
-                                                {req.status.toUpperCase()}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="p-3">
-                                            <div className="flex gap-2 justify-center flex-wrap">
-                                                <RequestActions
-                                                    req={req}
-                                                    onApprove={approve}
-                                                    onFulfill={fulfillFromStock}
-                                                    onReject={reject}
-                                                />
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                            )}
+                            />
 
                         <div className="grid grid-cols-1 gap-3 md:hidden">
                             {group.requests.map((req) => (

@@ -3,18 +3,38 @@
 import { useEffect, useState } from "react";
 import API from "@/lib/api1";
 import RoleGuard from "@/components/auth/roleguard";
+import PageHeader from "@/components/ui/page-header";
+import DataTable from "@/components/table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableHeader, TableHead, TableRow, TableCell, TableBody } from "@/components/ui/table";
-import { UserPlus, Trash2, Users } from "lucide-react";
-import type {Kitchen,VolunteerProfile} from "@/types/kitchen"
+import { TableRow, TableCell } from "@/components/ui/table";
+import { UserPlus, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import type { Kitchen, VolunteerProfile } from "@/types/kitchen";
+
+const COLUMNS = [
+  { key: "bil", label: "Bil" },
+  { key: "name", label: "Nama" },
+  { key: "matrik", label: "Matrik no" },
+  { key: "phone", label: "Phone" },
+  { key: "faculty", label: "Fakulti" },
+  { key: "kolej", label: "Kolej" },
+  { key: "actions", label: "Tindakan", align: "right" as const },
+];
+
 
 export default function ManagementVolunteersPage() {
   const [kitchens, setKitchens] = useState<Kitchen[]>([]);
-  const [selectedKitchen, setSelectedKitchen] = useState<string>("");
+  const [selectedKitchen, setSelectedKitchen] = useState("");
   const [volunteers, setVolunteers] = useState<VolunteerProfile[]>([]);
   const [loading, setLoading] = useState(false);
+  const [pageSize, setPageSize] = useState(10);
 
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalVolunteers, setTotalVolunteers] = useState(0);
+
+  // Add volunteer form
   const [name, setName] = useState("");
   const [matrikNo, setMatrikNo] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -22,47 +42,102 @@ export default function ManagementVolunteersPage() {
   const [kolej, setKolej] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const [nextPage, setNextPage] = useState<string | null>(null);
+  const [previousPage, setPreviousPage] = useState<string | null>(null);
+
+  // Fetch kitchens
   const fetchKitchens = async () => {
     try {
       const res = await API.get("/kitchens/");
-      setKitchens(res.data);
-      if (res.data.length > 0) setSelectedKitchen(String(res.data[0].id));
+
+      const kitchenData = Array.isArray(res.data)
+        ? res.data
+        : res.data.results;
+
+      setKitchens(kitchenData);
+
+      if (kitchenData.length > 0) {
+        setSelectedKitchen(String(kitchenData[0].id));
+      }
     } catch (err) {
       console.log(err);
     }
-  };
+};
 
-  const fetchVolunteers = async (kitchenId: string) => {
-    setLoading(true);
-    try {
-      const res = await API.get(`/volunteer-profiles/?kitchen=${kitchenId}`);
-      setVolunteers(res.data);
-    } catch (err) {
-      console.log(err);
-    } finally {
-      setLoading(false);
+  const fetchVolunteers = async (
+  kitchenId:string,
+  currentPage=1
+)=>{
+
+setLoading(true);
+
+try{
+
+const res = await API.get(
+    `/volunteer-profiles/?kitchen=${kitchenId}&page=${currentPage}`
+    );
+    setPageSize(res.data.page_size);
+
+
+    setVolunteers(
+      res.data.results
+    );
+
+
+    setTotalVolunteers(
+      res.data.count
+    );
+
+
+    setNextPage(
+      res.data.next
+    );
+
+
+    setPreviousPage(
+      res.data.previous
+    );
+
+
+    }catch(err){
+
+    console.log(err);
+
     }
-  };
+    finally{
 
+    setLoading(false);
+
+    }
+
+    };
+
+  // Initial kitchen fetch
   useEffect(() => {
     fetchKitchens();
   }, []);
 
+  // Fetch volunteers whenever kitchen or page changes
   useEffect(() => {
-    if (selectedKitchen) fetchVolunteers(selectedKitchen);
-  }, [selectedKitchen]);
+    if (selectedKitchen) {
+      fetchVolunteers(selectedKitchen, page);
+    }
+  }, [selectedKitchen, page]);
 
+  // Add volunteer
   const handleAdd = async () => {
     if (!name.trim()) {
       alert("Sila masukkan nama");
       return;
     }
+
     if (!selectedKitchen) {
       alert("Sila pilih dapur");
       return;
     }
 
     setSaving(true);
+
     try {
       await API.post("/volunteer-profiles/", {
         name,
@@ -72,47 +147,81 @@ export default function ManagementVolunteersPage() {
         kolej,
         kitchen: selectedKitchen,
       });
+
+      // Clear form
       setName("");
       setMatrikNo("");
       setPhoneNumber("");
       setFaculty("");
       setKolej("");
-      fetchVolunteers(selectedKitchen);
+
+      // Refresh current page
+      fetchVolunteers(selectedKitchen, page);
     } catch (err: any) {
-      console.log(err);
-      alert(err?.response?.data?.error ?? "Failed to add volunteer");
+      alert(
+        err?.response?.data?.error ??
+          "Failed to add volunteer"
+      );
     } finally {
       setSaving(false);
     }
   };
 
+  // Delete volunteer
   const handleDelete = async (id: number) => {
-    if (!window.confirm("Keluarkan sukarelawan ini daripada senarai?")) return;
+    if (
+      !window.confirm(
+        "Keluarkan sukarelawan ini daripada senarai?"
+      )
+    ) {
+      return;
+    }
+
     try {
       await API.delete(`/volunteer-profiles/${id}/`);
-      fetchVolunteers(selectedKitchen);
+
+      // If deleting the last item on the current page,
+      // move back one page when necessary.
+      if (volunteers.length === 1 && page > 1) {
+        setPage((prev) => prev - 1);
+      } else {
+        fetchVolunteers(selectedKitchen, page);
+      }
     } catch (err: any) {
-      console.log(err);
-      alert(err?.response?.data?.error ?? "Failed to remove volunteer");
+      alert(
+        err?.response?.data?.error ??
+          "Failed to remove volunteer"
+      );
     }
+  };
+
+  // Change kitchen
+  const handleKitchenChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    setSelectedKitchen(e.target.value);
+
+    // Always start from page 1 for a new kitchen
+    setPage(1);
   };
 
   return (
     <RoleGuard allowedRoles={["management"]}>
-      <div className="mx-auto space-y-5 p-3">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 sm:text-xl">Jadual Bertugas sukarelawan</h1>
-          <p className="text-sm text-gray-500">
-            Daftarkan sukarelawan di sini, mereka akan memilih nama masing-masing untuk merekod waktu masuk/keluar di halaman sukarelawan.
-          </p>
-        </div>
+      <div className="space-y-5">
+        <PageHeader
+          title="Pengurusan Sukarelawan" subtitle="Urus senarai sukarelawan mengikut dapur."
+        />
 
+        {/* Kitchen selection */}
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Dapur</label>
+          <label className="mb-1.5 block text-sm font-medium text-gray-700">
+            Dapur
+          </label>
+
           <select
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none sm:max-w-fit"
+            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 sm:max-w-fit"
             value={selectedKitchen}
-            onChange={(e) => setSelectedKitchen(e.target.value)}
+            onChange={handleKitchenChange}
           >
             {kitchens.map((k) => (
               <option key={k.id} value={k.id}>
@@ -122,6 +231,7 @@ export default function ManagementVolunteersPage() {
           </select>
         </div>
 
+        {/* Add volunteer */}
         <Card className="border-gray-100 shadow-sm">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -129,94 +239,156 @@ export default function ManagementVolunteersPage() {
               Tambah Sukarelawan
             </CardTitle>
           </CardHeader>
+
           <CardContent>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
               <input
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
+                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
                 placeholder="Nama"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
+
               <input
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
+                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
                 placeholder="Matrik no"
                 value={matrikNo}
                 onChange={(e) => setMatrikNo(e.target.value)}
               />
+
               <input
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
+                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
                 placeholder="No Telefon"
                 value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
+                onChange={(e) =>
+                  setPhoneNumber(e.target.value)
+                }
               />
+
               <input
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
+                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
                 placeholder="Fakulti"
                 value={faculty}
-                onChange={(e) => setFaculty(e.target.value)}
+                onChange={(e) =>
+                  setFaculty(e.target.value)
+                }
               />
+
               <input
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
+                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
                 placeholder="Kolej"
                 value={kolej}
-                onChange={(e) => setKolej(e.target.value)}
+                onChange={(e) =>
+                  setKolej(e.target.value)
+                }
               />
             </div>
-            <Button className="mt-3 w-full sm:w-auto" onClick={handleAdd} disabled={saving}>
+
+            <Button
+              className="mt-3 w-full sm:w-auto"
+              onClick={handleAdd}
+              disabled={saving}
+            >
               {saving ? "Adding..." : "Add to roster"}
             </Button>
           </CardContent>
         </Card>
 
-        <div className="overflow-hidden rounded-lg border bg-white">
-          <Table className="w-full">
-            <TableHeader>
-              <TableRow className="bg-gray-100">
-                <TableHead className="p-2 text-left font-bold">Nama</TableHead>
-                <TableHead className="p-2 text-left font-bold">Matrik no</TableHead>
-                <TableHead className="p-2 text-left font-bold">Phone</TableHead>
-                <TableHead className="p-2 text-left font-bold">Fakulti</TableHead>
-                <TableHead className="p-2 text-left font-bold">Kolej</TableHead>
-                <TableHead className="p-2 text-right font-bold">Tindakan</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={6}>Loading...</TableCell>
-                </TableRow>
-              ) : volunteers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="p-6 text-center text-gray-500">
-                    <div className="flex flex-col items-center gap-2">
-                      <Users className="h-6 w-6 text-gray-300" />
-                      Tiada sukarelawan yang mendaftar untuk dapur ini lagi.
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                volunteers.map((v) => (
-                  <TableRow key={v.id} className="border-t">
-                    <TableCell className="p-2 font-medium">{v.name}</TableCell>
-                    <TableCell className="p-2">{v.matrik_no || "—"}</TableCell>
-                    <TableCell className="p-2">{v.phone_number || "—"}</TableCell>
-                    <TableCell className="p-2">{v.faculty || "—"}</TableCell>
-                    <TableCell className="p-2">{v.kolej || "—"}</TableCell>
-                    <TableCell className="p-2 text-right">
-                      <button
-                        onClick={() => handleDelete(v.id)}
-                        aria-label={`Remove ${v.name}`}
-                        className="rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-600"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        {/* Volunteer table */}
+        <DataTable
+          columns={COLUMNS}
+          data={volunteers}
+          loading={loading}
+          emptyMessage="Tiada sukarelawan yang mendaftar untuk dapur ini lagi."
+          renderRow={(v, index) => (
+            <TableRow key={v.id} className="border-t">
+              <TableCell className="w-10 p-2">
+                {(page - 1) * pageSize + index + 1}
+              </TableCell>
+
+              <TableCell className="p-2 font-medium">
+                {v.name}
+              </TableCell>
+
+              <TableCell className="p-2">
+                {v.matrik_no || "—"}
+              </TableCell>
+
+              <TableCell className="p-2">
+                {v.phone_number || "—"}
+              </TableCell>
+
+              <TableCell className="p-2">
+                {v.faculty || "—"}
+              </TableCell>
+
+              <TableCell className="p-2">
+                {v.kolej || "—"}
+              </TableCell>
+
+              <TableCell className="p-2 text-right">
+                <button
+                  onClick={() => handleDelete(v.id)}
+                  aria-label={`Remove ${v.name}`}
+                  className="rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-600"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </TableCell>
+            </TableRow>
+          )}
+        />
+
+        {/* Pagination */}
+        {totalVolunteers > 0 && (
+          <div className="flex flex-col items-center justify-between gap-3 border-t pt-4 sm:flex-row">
+            <div className="text-sm text-gray-500">
+              Showing{" "}
+              <span className="font-medium text-gray-700">
+                {(page - 1) * pageSize + 1}
+              </span>{" "}
+              to{" "}
+              <span className="font-medium text-gray-700">
+                {Math.min(page * pageSize, totalVolunteers)}
+              </span>{" "}
+              of{" "}
+              <span className="font-medium text-gray-700">
+                {totalVolunteers}
+              </span>{" "}
+              volunteers
+            </div>
+
+            <div className="flex items-center gap-2">
+             <Button
+                variant="outline"
+                size="sm"
+                disabled={!previousPage || loading}
+                onClick={() =>
+                  setPage(prev => prev - 1)
+                }
+                >
+                <ChevronLeft className="mr-1 h-4 w-4"/>
+                Previous
+                </Button>
+
+              <span className="min-w-[100px] text-center text-sm text-gray-600">
+                Page {page} of {totalPages}
+              </span>
+
+              <Button
+              variant="outline"
+              size="sm"
+              disabled={!nextPage || loading}
+              onClick={() =>
+                setPage(prev => prev + 1)
+              }
+              >
+              <ChevronRight className="ml-1 h-4 w-4"/>
+              Next
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </RoleGuard>
   );

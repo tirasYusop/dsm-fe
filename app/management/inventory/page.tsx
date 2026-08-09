@@ -9,7 +9,9 @@ import StockMovementModal, { Kitchen } from "@/components/inventory/stockmovemen
 import AddSourceItemDrawer from "@/components/inventory/addsourceitemdrawer";
 import { Button } from "@/components/ui/button";
 import { Table, TableHeader, TableHead, TableRow, TableCell, TableBody } from "@/components/ui/table";
-import type {SourceStock,ItemWithStock} from "@/types/inventory"
+import type { SourceStock, ItemWithStock, MovementTarget } from "@/types/inventory";
+import PageHeader from "@/components/ui/page-header";
+import PillTabs from "@/components/ui/pill-tabs";
 
 const SOURCES = [
   { value: "donation", label: "Donation" },
@@ -19,7 +21,6 @@ const SOURCES = [
   { value: "other", label: "Other" },
 ];
 
-
 export default function InventoryPage() {
   const [tab, setTab] = useState<"in" | "out">("in");
   const [source, setSource] = useState("donation");
@@ -27,16 +28,32 @@ export default function InventoryPage() {
   const [outItems, setOutItems] = useState<ItemWithStock[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const [movementTarget, setMovementTarget] = useState<
-    { id: number; name: string; unit: string } | null
-  >(null);
+  // pagination state — "Stok Masuk" (in)
+  const [inPage, setInPage] = useState(1);
+  const [inTotalPages, setInTotalPages] = useState(1);
+  const [inPageSize, setInPageSize] = useState(1);
+
+  // pagination state — "Pindah Keluar" (out)
+  const [outPage, setOutPage] = useState(1);
+  const [outTotalPages, setOutTotalPages] = useState(1);
+  const [outPageSize, setOutPageSize] = useState(1);
+
+  const [movementTarget, setMovementTarget] = useState<MovementTarget | null>(null);
   const [addItemOpen, setAddItemOpen] = useState(false);
 
   const fetchSourceStocks = async () => {
     setLoading(true);
     try {
-      const res = await API.get(`/source-inventory/?source=${source}`);
-      setSourceStocks(res.data);
+      const res = await API.get(`/source-inventory/`, {
+        params: { source, page: inPage },
+      });
+      const results = res.data.results ?? res.data;
+      setSourceStocks(results);
+
+      const count = res.data.count ?? results.length ?? 0;
+      const size = res.data.page_size ?? results.length ?? 1;
+      setInPageSize(size);
+      setInTotalPages(Math.max(1, Math.ceil(count / size)));
     } catch (err) {
       console.log(err);
     } finally {
@@ -47,8 +64,16 @@ export default function InventoryPage() {
   const fetchOutItems = async () => {
     setLoading(true);
     try {
-      const res = await API.get("/inventory/with-stock/");
-      setOutItems(res.data);
+      const res = await API.get("/inventory/with-stock/", {
+        params: { page: outPage },
+      });
+      const results = res.data.results ?? res.data;
+      setOutItems(results);
+
+      const count = res.data.count ?? results.length ?? 0;
+      const size = res.data.page_size ?? results.length ?? 1;
+      setOutPageSize(size);
+      setOutTotalPages(Math.max(1, Math.ceil(count / size)));
     } catch (err) {
       console.log(err);
     } finally {
@@ -56,13 +81,18 @@ export default function InventoryPage() {
     }
   };
 
+  // reset to page 1 whenever the source filter changes
+  useEffect(() => {
+    setInPage(1);
+  }, [source]);
+
   useEffect(() => {
     if (tab === "in") fetchSourceStocks();
-  }, [tab, source]);
+  }, [tab, source, inPage]);
 
   useEffect(() => {
     if (tab === "out") fetchOutItems();
-  }, [tab]);
+  }, [tab, outPage]);
 
   const kitchens: Kitchen[] =
     outItems[0]?.kitchens.map((k) => ({ id: k.kitchen_id, code: k.kitchen_name })) ?? [];
@@ -86,7 +116,9 @@ export default function InventoryPage() {
     try {
       if (tab === "in") {
         formData.append("source", source);
-        formData.append("unit_price", String(data.unitPrice ?? 0));
+        if (data.unitPrice != null && data.unitPrice > 0) {
+          formData.append("unit_price", String(data.unitPrice));
+        }
         await API.post("/source-inventory/", formData);
         await fetchSourceStocks();
       } else {
@@ -108,10 +140,9 @@ export default function InventoryPage() {
 
   return (
     <RoleGuard allowedRoles={["management"]}>
-      <div className="space-y-5">
+      <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">Inventori</h1>
-          <p className="text-sm text-gray-500">Urus stok gudang dan pemindahan dapur di satu tempat.</p>
+          <PageHeader title="Inventori" subtitle="Urus stok gudang dan pemindahan dapur di satu tempat." />
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -139,96 +170,131 @@ export default function InventoryPage() {
 
         <div className="overflow-hidden rounded-lg border bg-white">
           {tab === "in" ? (
-            <Table className="w-full">
-              <TableHeader>
-                <TableRow className="bg-gray-100">
-                  <TableHead className="p-2 text-left font-bold w-10">Bil.</TableHead>
-                  <TableHead className="p-2 text-left font-bold">Item</TableHead>
-                  <TableHead className="p-2 text-left font-bold">Jumlah Diterima</TableHead>
-                  <TableHead className="p-2 text-left font-bold">Terbaharu Ditambah</TableHead>
-                  <TableHead className="p-2 text-left font-bold">Kemas kini terakhir</TableHead>
-                  <TableHead className="p-2 text-right font-bold">Tindakan</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={5}>Loading...</TableCell>
+            <>
+              <Table className="w-full">
+                <TableHeader>
+                  <TableRow className="bg-gray-100">
+                    <TableHead className="p-2 text-left font-bold w-10">Bil.</TableHead>
+                    <TableHead className="p-2 text-left font-bold">Item</TableHead>
+                    <TableHead className="p-2 text-left font-bold">Jumlah Diterima</TableHead>
+                    <TableHead className="p-2 text-left font-bold">Terbaharu Ditambah</TableHead>
+                    <TableHead className="p-2 text-left font-bold">Jumlah Harga</TableHead>
+                    <TableHead className="p-2 text-left font-bold">Kemas kini terakhir</TableHead>
+                    <TableHead className="p-2 text-right font-bold">Tindakan</TableHead>
                   </TableRow>
-                ) : (
-                  sourceStocks.map((s,index) => (
-                    <TableRow key={s.id} className="border-t">
-                      <TableCell className="p-2">{index + 1}</TableCell>
-                      <TableCell className="p-2">{s.item_name} — RM {s.price_per_unit}</TableCell>
-                      <TableCell className="p-2">{s.total_received}</TableCell>
-                      <TableCell className="p-2">{s.latest_added}</TableCell>
-                      <TableCell className="p-2">
-                        {s.last_updated ? new Date(s.last_updated).toLocaleString() : "-"}
-                      </TableCell>
-                      <TableCell className="p-2 text-right">
-                        <Button
-                          size="sm"
-                          onClick={() =>
-                            setMovementTarget({ id: s.item, name: s.item_name, unit: "" })
-                          }
-                        >
-                          Tambah Stok
-                        </Button>
-                      </TableCell>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={7}>Loading...</TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          ) : (
-            <Table className="w-full">
-              <TableHeader>
-                <TableRow className="bg-gray-100">
-                  <TableHead>No.</TableHead>
-                  <TableHead>Item</TableHead>
-                  <TableHead className="text-center">Warehouse</TableHead>
-                  {outItems[0]?.kitchens.map((k) => (
-                    <TableHead key={k.kitchen_id} className="text-center">
-                      {k.kitchen_name}
-                    </TableHead>
-                  ))}
-                  <TableHead className="text-right">Tindakan</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={10}>Loading...</TableCell>
-                  </TableRow>
-                ) : (
-                  outItems.map((item,index) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{index+1}</TableCell>
-                      <TableCell className="font-medium">{item.name}</TableCell>
-                      <TableCell className="text-center font-bold">{item.management_stock}</TableCell>
-                      {item.kitchens.map((k) => (
-                        <TableCell key={k.kitchen_id} className="text-center">
-                          <p className="font-semibold">{k.stock}</p>
-                          <div className="mt-1">
-                            <StatusBadge status={k.status} />
-                          </div>
+                  ) : (
+                    sourceStocks.map((s, index) => (
+                      <TableRow key={s.id} className="border-t">
+                        <TableCell className="p-2">{(inPage - 1) * inPageSize + index + 1}</TableCell>
+                        <TableCell className="p-2">{s.item_name} — RM {s.price_per_unit}</TableCell>
+                        <TableCell className="p-2">{s.total_received}</TableCell>
+                        <TableCell className="p-2">{s.latest_added}</TableCell>
+                        <TableCell className="p-2">
+                          RM {Number(s.total_amount ?? 0).toFixed(2)}
                         </TableCell>
-                      ))}
-                      <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          onClick={() =>
-                            setMovementTarget({ id: item.id, name: item.name, unit: item.unit })
-                          }
-                        >
-                          Pindahkan
-                        </Button>
-                      </TableCell>
+                        <TableCell className="p-2">
+                          {s.last_updated ? new Date(s.last_updated).toLocaleString() : "-"}
+                        </TableCell>
+                        <TableCell className="p-2 text-right">
+                          <Button
+                            size="sm"
+                            onClick={() =>
+                              setMovementTarget({
+                                id: s.item,
+                                name: s.item_name,
+                                unit: "",
+                                defaultUnitPrice: s.price_per_unit ? Number(s.price_per_unit) : undefined,
+                              })
+                            }
+                          >
+                            Tambah Stok
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+
+              <div className="flex items-center justify-center gap-4 border-t p-4">
+                <Button variant="outline" disabled={inPage === 1 || loading} onClick={() => setInPage(inPage - 1)}>
+                  Previous
+                </Button>
+                <span className="text-sm text-gray-600">Page {inPage} of {inTotalPages}</span>
+                <Button variant="outline" disabled={inPage === inTotalPages || loading} onClick={() => setInPage(inPage + 1)}>
+                  Next
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <Table className="w-full">
+                <TableHeader>
+                  <TableRow className="bg-gray-100">
+                    <TableHead>No.</TableHead>
+                    <TableHead>Item</TableHead>
+                    <TableHead className="text-center">Warehouse</TableHead>
+                    {outItems[0]?.kitchens.map((k) => (
+                      <TableHead key={k.kitchen_id} className="text-center">
+                        {k.kitchen_name}
+                      </TableHead>
+                    ))}
+                    <TableHead className="text-right">Tindakan</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={10}>Loading...</TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    outItems.map((item, index) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-medium w-10">
+                          {(outPage - 1) * outPageSize + index + 1}
+                        </TableCell>
+                        <TableCell className="font-medium">{item.name}</TableCell>
+                        <TableCell className="text-center font-bold">{item.management_stock}</TableCell>
+                        {item.kitchens.map((k) => (
+                          <TableCell key={k.kitchen_id} className="text-center">
+                            <p className="font-semibold">{k.stock}</p>
+                            <div className="mt-1">
+                              <StatusBadge status={k.status} />
+                            </div>
+                          </TableCell>
+                        ))}
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            onClick={() =>
+                              setMovementTarget({ id: item.id, name: item.name, unit: item.unit })
+                            }
+                          >
+                            Pindahkan
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+
+              <div className="flex items-center justify-center gap-4 border-t p-4">
+                <Button variant="outline" disabled={outPage === 1 || loading} onClick={() => setOutPage(outPage - 1)}>
+                  Previous
+                </Button>
+                <span className="text-sm text-gray-600">Page {outPage} of {outTotalPages}</span>
+                <Button variant="outline" disabled={outPage === outTotalPages || loading} onClick={() => setOutPage(outPage + 1)}>
+                  Next
+                </Button>
+              </div>
+            </>
           )}
         </div>
       </div>

@@ -1,20 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
 import API from "@/lib/api1";
-
-import {
-  Table,
-  TableHeader,
-  TableHead,
-  TableRow,
-  TableBody,
-  TableCell
-} from "@/components/ui/table";
+import { TableRow, TableCell } from "@/components/ui/table";
+import DataTable from "@/components/table";
+import PageHeader from "@/components/ui/page-header";
+import SectionHeading from "@/components/ui/section-heading";
 import RoleGuard from "@/components/auth/roleguard";
-import type {Attendance,StudentActivity} from "@/types/attandance"
+import type { Attendance, StudentActivity } from "@/types/attandance";
 
+const COLUMNS = [
+  { key: "no", label: "Bil.", className: "w-10" },
+  { key: "id", label: "ID Pelajar" },
+  { key: "name", label: "Nama" },
+  { key: "faculty", label: "Fakulti", align: "center" as const },
+  { key: "checkin", label: "Waktu Check In", align: "center" as const },
+  { key: "activity", label: "Aktiviti" },
+];
 
 export default function StudentWalkinPage() {
   const [records, setRecords] = useState<Attendance[]>([]);
@@ -52,84 +54,61 @@ export default function StudentWalkinPage() {
 
   const groupedKitchen = records.reduce((acc: Record<string, Attendance[]>, item) => {
     const kitchenId = item.kitchen?.id?.toString() ?? "unknown";
-    if (!acc[kitchenId]) {
-      acc[kitchenId] = [];
-    }
+    if (!acc[kitchenId]) acc[kitchenId] = [];
     acc[kitchenId].push(item);
     return acc;
   }, {});
 
-  if (loading) {
-    return <div> Loading...</div>;
-  }
-
   return (
     <RoleGuard allowedRoles={["management"]}>
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Kehadiran Pelajar (Walk In)</h1>
+        <PageHeader title="Kehadiran Pelajar (Walk In)" />
+
         {Object.keys(groupedKitchen).map((kitchenId) => {
           const kitchenRecords = groupedKitchen[kitchenId];
           const kitchen = kitchenRecords[0].kitchen;
           return (
             <div key={kitchenId} className="space-y-3">
-              <h2 className="text-xl font-bold">{kitchen?.name}</h2>
-              <div className="border rounded bg-white overflow-hidden ">
-                <Table className="w-full">
-                  <TableHeader className="bg-gray-100">
-                    <TableRow>
-                      <TableHead className="font-bold w-10">Bil.</TableHead>
-                      <TableHead className="font-bold">ID Pelajar</TableHead>
-                      <TableHead className="font-bold">Nama</TableHead>
-                      <TableHead className="font-bold text-center">Fakulti</TableHead>
-                      <TableHead className="font-bold text-center">Waktu Check In</TableHead>
-                      <TableHead className="font-bold text-center">Aktiviti</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {kitchenRecords.map((item,index) => {
-                      const activity = activities[item.id];
-                      return (
-                        <TableRow key={item.id}>
-                          <TableCell className="border-r p-2">{index+1}</TableCell>
-                          <TableCell className="border-r p-2">{item.student.student_id}</TableCell>
-                          <TableCell className="border-r p-2">{item.student.name} </TableCell>
-                          <TableCell className="border-r text-center">{item.student.faculty} </TableCell>
-                          <TableCell className="border-r text-center">
-                            {new Date(item.check_in_time).toLocaleString()}
-                          </TableCell>
-                          <TableCell className="text-left p-2">
-                            {!activity ? (
-                              <span className="text-xs text-muted-foreground">
-                                Not recorded
-                              </span>
-                            ) : (
-                              <ul className="text-xs space-y-0.5">
-                                {activity.took_rice && <li>Menagambil Nasi</li>}
-                                {activity.took_dish && <li>Mengambil Lauk</li>}
-                                {activity.used_kitchen && <li>Menggunakan Dapur</li>}
-                                {activity.took_foodbank && (
-                                  <li>
-                                    Foodbank:{" "}
-                                    {activity.foodbank_items
-                                      .map((f) => `${f.item_name} x${f.quantity}`)
-                                      .join(", ")}
-                                  </li>
-                                )}
-                                {!activity.took_rice &&
-                                  !activity.took_dish &&
-                                  !activity.used_kitchen &&
-                                  !activity.took_foodbank && (
-                                    <li className="text-muted-foreground">Tiada Aktiviti</li>
-                                  )}
-                              </ul>
+              <SectionHeading>{kitchen?.name}</SectionHeading>
+              <DataTable
+                columns={COLUMNS}
+                data={kitchenRecords}
+                loading={loading}
+                emptyMessage="Tiada rekod walk-in."
+                renderRow={(item, index) => {
+                  const activity = activities[item.id];
+                  return (
+                    <TableRow key={item.id}>
+                      <TableCell className="p-2">{index + 1}</TableCell>
+                      <TableCell className="p-2">{item.student.student_id}</TableCell>
+                      <TableCell className="p-2">{item.student.name}</TableCell>
+                      <TableCell className="p-2 text-center">{item.student.faculty}</TableCell>
+                      <TableCell className="p-2 text-center">
+                        {new Date(item.check_in_time).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="p-2">
+                        {!activity ? (
+                          <span className="text-xs text-muted-foreground">Not recorded</span>
+                        ) : (
+                          <ul className="text-xs space-y-0.5">
+                            {activity.took_rice && <li>Mengambil Nasi</li>}
+                            {activity.took_dish && <li>Mengambil Lauk</li>}
+                            {activity.used_kitchen && <li>Menggunakan Dapur</li>}
+                            {activity.took_foodbank && (
+                              <li>
+                                Foodbank: {activity.foodbank_items.map((f) => `${f.item_name} x${f.quantity}`).join(", ")}
+                              </li>
                             )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+                            {!activity.took_rice && !activity.took_dish && !activity.used_kitchen && !activity.took_foodbank && (
+                              <li className="text-muted-foreground">Tiada Aktiviti</li>
+                            )}
+                          </ul>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                }}
+              />
             </div>
           );
         })}

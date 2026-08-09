@@ -92,7 +92,57 @@ export default function UsageHistoryTable({ records, loading }: Props) {
         )}
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-gray-200">
+      {/* Mobile history cards */}
+      <div className="md:hidden space-y-3">
+
+      {
+      filteredRecords.map((record)=>{
+
+      const date = new Date(record.created_at);
+
+      return (
+
+      <div
+      key={record.id}
+      className="
+      rounded-xl
+      border
+      p-4
+      bg-white
+      shadow-sm
+      "
+      >
+
+      <div className="flex justify-between">
+
+      <p className="font-semibold">
+      {record.item_name}
+      </p>
+
+      <p className="text-sm text-gray-500">
+      {record.quantity} {record.usage_unit}
+      </p>
+
+      </div>
+
+
+      <p className="mt-2 text-xs text-gray-400">
+      {
+      date.toLocaleString()
+      }
+      </p>
+
+
+      </div>
+
+      )
+
+      })
+      }
+
+      </div>
+
+      <div className="hidden md:block overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50 hover:bg-gray-50">

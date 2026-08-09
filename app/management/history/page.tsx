@@ -10,178 +10,164 @@ import { Button } from "@/components/ui/button";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { Movement } from "@/types/movement";
+import PageHeader from "@/components/ui/page-header";
+import PillTabs from "@/components/ui/pill-tabs";
+
+const TABS = [
+  { value: "stock in", label: "Stok Masuk" },
+  { value: "stock out", label: "Stok Keluar" },
+];
 
 export default function HistoryPage() {
   const [history, setHistory] = useState<Movement[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Movement | null>(null);
   const [search, setSearch] = useState("");
   const [date, setDate] = useState("");
-  const [typeFilter, setTypeFilter] = useState("all");
   const [locationFilter, setLocationFilter] = useState("all");
   const [kitchenFilter, setKitchenFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [activeTab, setActiveTab] = useState("stock in");
+  const [totalAmount, setTotalAmount] = useState<number | null>(null);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, date, sourceFilter, activeTab]);
 
   useEffect(() => {
     setLoading(true);
+    setError(null);
 
-    API.get("/stock-movements/?context=management")
-      .then((res) => setHistory(res.data))
+    const params: Record<string, string | number> = {
+      context: "management",
+      page,
+      movement_type: activeTab === "stock in" ? "in" : "out",
+    };
+    if (search.trim()) params.search = search.trim();
+    if (date) params.date = date;
+    if (sourceFilter !== "all") params.source = sourceFilter;
+
+    API.get("/stock-movements/", { params })
+      .then((res) => {
+        setHistory(res.data.results ?? res.data);
+        const count = res.data.count ?? res.data.length ?? 0;
+        const size = res.data.page_size ?? 2;
+        setTotalPages(Math.max(1, Math.ceil(count / size)));
+      })
+      .catch((err) => {
+        console.log("Failed to load history:", err?.response?.status, err?.response?.data);
+        setHistory([]);
+        setError(err?.response?.data?.detail || "Failed to load movement history");
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [page, activeTab, search, date, sourceFilter]);
+
+  // Fetch grand total across ALL matching rows (not just current page) — only meaningful for stock in
+  useEffect(() => {
+    if (activeTab !== "stock in") {
+      setTotalAmount(null);
+      return;
+    }
+
+    const params: Record<string, string | number> = {
+      context: "management",
+      movement_type: "in",
+    };
+    if (search.trim()) params.search = search.trim();
+    if (date) params.date = date;
+    if (sourceFilter !== "all") params.source = sourceFilter;
+
+    API.get("/stock-movements/total-value/", { params })
+      .then((res) => setTotalAmount(Number(res.data.total_amount) || 0))
+      .catch((err) => {
+        console.log("Failed to load total value:", err?.response?.status, err?.response?.data);
+        setTotalAmount(null);
+      });
+  }, [activeTab, search, date, sourceFilter]);
 
   const kitchenOptions = useMemo(() => {
     return Array.from(
-      new Set(
-        history
-          .map((h) => h.kitchen_name ?? h.destination)
-          .filter(Boolean)
-      )
+      new Set(history.map((h) => h.kitchen_name ?? h.destination).filter(Boolean))
     ).sort() as string[];
   }, [history]);
 
   const sourceOptions = useMemo(() => {
-    return Array.from(
-      new Set(
-        history
-          .map((h) => h.source)
-          .filter(Boolean)
-      )
-    ).sort() as string[];
+    return Array.from(new Set(history.map((h) => h.source).filter(Boolean))).sort() as string[];
   }, [history]);
 
   const filteredHistory = useMemo(() => {
     return history.filter((h) => {
-      const matchesSearch =
-        !search.trim() ||
-        h.display_name.toLowerCase().includes(search.trim().toLowerCase());
-
-      const matchesType =
-        typeFilter === "all" || h.movement_type === typeFilter;
-
-      const location =
-        h.movement_type === "out" ? h.destination : h.kitchen_name;
-
-      const matchesLocation =
-        locationFilter === "all" || location === locationFilter;
-
-      const matchesKitchen =
-        kitchenFilter === "all" || h.kitchen_name === kitchenFilter;
-
-      const matchesSource =
-        sourceFilter === "all" || h.source === sourceFilter;
-
-      const matchesDate =
-        !date ||
-        new Date(h.created_at).toLocaleDateString("en-CA") === date;
-
-      return (
-        matchesSearch &&
-        matchesType &&
-        matchesLocation &&
-        matchesDate &&
-        matchesKitchen &&
-        matchesSource
-      );
+      const location = h.movement_type === "out" ? h.destination : h.kitchen_name;
+      const matchesLocation = locationFilter === "all" || location === locationFilter;
+      const matchesKitchen = kitchenFilter === "all" || h.kitchen_name === kitchenFilter;
+      return matchesLocation && matchesKitchen;
     });
-  }, [
-    history,
-    search,
-    typeFilter,
-    locationFilter,
-    date,
-    kitchenFilter,
-    sourceFilter,
-  ]);
+  }, [history, locationFilter, kitchenFilter]);
 
   const hasActiveFilters =
-    !!search.trim() ||
-    !!date ||
-    typeFilter !== "all" ||
-    locationFilter !== "all" ||
-    kitchenFilter !== "all" ||
-    sourceFilter !== "all";
+    !!search.trim() || !!date || locationFilter !== "all" || kitchenFilter !== "all" || sourceFilter !== "all";
 
   const clearFilters = () => {
     setSearch("");
     setDate("");
-    setTypeFilter("all");
     setLocationFilter("all");
     setKitchenFilter("all");
     setSourceFilter("all");
   };
 
-  const stockIn = filteredHistory.filter((h) => h.movement_type === "in");
-  const stockOut = filteredHistory.filter((h) => h.movement_type === "out");
-
   const downloadPdf = () => {
     const doc = new jsPDF();
-
     doc.setFontSize(16);
     doc.text("Ringkasan Inventori DSM@UMS", 14, 15);
-
     doc.setFontSize(10);
-    doc.text(
-      `Generated: ${new Date().toLocaleString("en-MY")}`,
-      14,
-      22
-    );
+    doc.text(`Generated: ${new Date().toLocaleString("en-MY")}`, 14, 22);
 
     autoTable(doc, {
       startY: 30,
-      head: [[
-        "No",
-        "Item",
-        "Type",
-        "Qty",
-        "Location",
-        "Source",
-        "Remarks",
-        "Total Price",
-        "Date",
-      ]],
+      head: [["No", "Item", "Type", "Qty", "Location", "Source", "Remarks", "Total Price", "Date"]],
       body: filteredHistory.map((m, index) => [
         index + 1,
         m.display_name,
         m.movement_type.toUpperCase(),
         m.quantity,
-        m.movement_type === "out"
-          ? (m.destination ?? "-")
-          : (m.kitchen_name ?? "-"),
+        m.movement_type === "out" ? (m.destination ?? "-") : (m.kitchen_name ?? "-"),
         m.source ?? "-",
         m.remarks ?? "-",
-        m.total_amount != null
-          ? `RM ${Number(m.total_amount).toFixed(2)}`
-          : "-",
+        m.total_amount != null ? `RM ${Number(m.total_amount).toFixed(2)}` : "-",
         new Date(m.created_at).toLocaleString("en-MY"),
       ]),
       theme: "grid",
-      headStyles: {
-        fillColor: [55, 65, 81],
-      },
-      styles: {
-        fontSize: 9,
-      },
+      headStyles: { fillColor: [55, 65, 81] },
+      styles: { fontSize: 9 },
     });
 
-    doc.save(
-      `inventory-history-${new Date().toISOString().slice(0, 10)}.pdf`
-    );
+    if (activeTab === "stock in" && totalAmount != null) {
+      const finalY = (doc as any).lastAutoTable?.finalY ?? 30;
+      doc.setFontSize(11);
+      doc.text(`Jumlah Keseluruhan: RM ${totalAmount.toFixed(2)}`, 14, finalY + 10);
+    }
+
+    doc.save(`inventory-history-${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   return (
     <RoleGuard allowedRoles={["management"]}>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Sejarah Pergerakkan Inventori (Masuk / Keluar)</h1>
+        <PageHeader
+          title="Sejarah Pergerakkan Inventori (Masuk / Keluar)"
+          action={
+            <Button onClick={downloadPdf} variant="outline">
+              <Download className="mr-2 h-4 w-4" />
+              Eksport PDF
+            </Button>
+          }
+        />
 
-          <Button onClick={downloadPdf} variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Eksport PDF
-          </Button>
-        </div>
+        {error && <p className="text-red-500 text-sm">{error}</p>}
 
-        {/* FILTERS */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <input
@@ -200,11 +186,7 @@ export default function HistoryPage() {
                 className="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
               />
               {date && (
-                <button
-                  onClick={() => setDate("")}
-                  className="text-xs text-gray-400 hover:text-gray-600"
-                  type="button"
-                >
+                <button onClick={() => setDate("")} className="text-xs text-gray-400 hover:text-gray-600" type="button">
                   Clear
                 </button>
               )}
@@ -216,12 +198,7 @@ export default function HistoryPage() {
               className="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
             >
               <option value="all">All Locations</option>
-
-              {kitchenOptions.map((kitchen) => (
-                <option key={kitchen} value={kitchen}>
-                  {kitchen}
-                </option>
-              ))}
+              {kitchenOptions.map((kitchen) => <option key={kitchen} value={kitchen}>{kitchen}</option>)}
             </select>
 
             <select
@@ -230,84 +207,46 @@ export default function HistoryPage() {
               className="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
             >
               <option value="all">All Sources</option>
-
-              {sourceOptions.map((source) => (
-                <option key={source} value={source}>
-                  {source}
-                </option>
-              ))}
+              {sourceOptions.map((source) => <option key={source} value={source}>{source}</option>)}
             </select>
 
             {hasActiveFilters && (
-              <button
-                onClick={clearFilters}
-                className="text-xs font-medium text-gray-500 underline hover:text-gray-700"
-                type="button"
-              >
+              <button onClick={clearFilters} className="text-xs font-medium text-gray-500 underline hover:text-gray-700" type="button">
                 Clear all filters
               </button>
             )}
           </div>
 
-          <div className="flex flex-wrap gap-1.5">
-            {[
-              { value: "all", label: "All" },
-              { value: "in", label: "Stock IN" },
-              { value: "out", label: "Stock OUT" },
-            ].map((filter) => (
-              <button
-                key={filter.value}
-                onClick={() => setTypeFilter(filter.value)}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                  typeFilter === filter.value
-                    ? "bg-gray-900 text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                {filter.label}
-              </button>
-            ))}
-          </div>
+          {activeTab === "stock in" && totalAmount != null && (
+            <div className="text-sm font-semibold text-gray-700">
+              Jumlah Keseluruhan: RM {totalAmount.toFixed(2)}
+            </div>
+          )}
         </div>
 
-        {/* STOCK IN */}
-        <div>
-          <h2 className="mb-2 text-lg font-semibold text-green-600">
-            Stok Masuk
-          </h2>
+        <PillTabs options={TABS} value={activeTab} onChange={setActiveTab} />
 
-          <MovementTable
-            data={stockIn}
-            loading={loading}
-            onSelect={setSelected}
-            selected={selected}
-            showSource={true}
-            showLocation={false}
-            showPrice={true}
-          />
-        </div>
-
-        {/* STOCK OUT */}
-        <div>
-          <h2 className="mb-2 text-lg font-semibold text-red-600">
-            Stock Keluar
-          </h2>
-
-          <MovementTable
-            data={stockOut}
-            loading={loading}
-            onSelect={setSelected}
-            selected={selected}
-            showPrice={false}
-            showSource={false}
-            showLocation={true}
-          />
-        </div>
-
-        <MovementDetailPanel
-          item={selected}
-          onClose={() => setSelected(null)}
+        <MovementTable
+          data={filteredHistory}
+          loading={loading}
+          onSelect={setSelected}
+          selected={selected}
+          showSource={activeTab === "stock in"}
+          showLocation={activeTab === "stock out"}
+          showPrice={activeTab === "stock in"}
         />
+
+        <div className="flex items-center justify-center gap-4 border-t pt-4">
+          <Button variant="outline" disabled={page === 1 || loading} onClick={() => setPage(page - 1)}>
+            Previous
+          </Button>
+          <span className="text-sm text-gray-600">Page {page} of {totalPages}</span>
+          <Button variant="outline" disabled={page === totalPages || loading} onClick={() => setPage(page + 1)}>
+            Next
+          </Button>
+        </div>
+
+        <MovementDetailPanel item={selected} onClose={() => setSelected(null)} />
       </div>
     </RoleGuard>
   );

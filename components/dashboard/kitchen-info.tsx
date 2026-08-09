@@ -33,7 +33,7 @@ export default function KitchenInfoCard() {
     (async () => {
       try {
         const res = await API.get("/kitchens/");
-        setKitchens(res.data);
+        setKitchens(res.data.results ?? res.data);
       } catch (err: any) {
         console.log(err);
         setError(err?.response?.status ? `Failed to load (${err.response.status})` : "Failed to load kitchens");

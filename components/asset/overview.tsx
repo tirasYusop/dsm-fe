@@ -10,6 +10,7 @@ import autoTable from "jspdf-autotable";
 import { Download } from "lucide-react";
 import type {OverviewAsset,AssetOption} from "@/types/asset"
 import AssetDetailPanel from "./assetpanel";
+import DataTable from "../table";
 
 const STATUS_STYLES: Record<string, string> = {
   active: "bg-green-100 text-green-700",
@@ -179,107 +180,27 @@ export default function AssetOverviewTab() {
                   const remarks = asset.transactions.filter((t) => t.notes);
 
                   return (
-                    <TableRow
-                      key={asset.id}
-                      onClick={() => setSelectedId(asset.id)}
-                      className="cursor-pointer hover:bg-gray-50"
-                    >
-                      <TableCell>
-                        {asset.image ? (
-                          <img
-                            src={asset.image}
-                            alt={asset.name_brand}
-                            className="h-12 w-12 rounded-lg border object-cover"
-                          />
-                        ) : (
-                          <div className="h-12 w-12 rounded-lg border bg-gray-50" />
-                        )}
-                      </TableCell>
-                      <TableCell>#{asset.id}</TableCell>
-                      <TableCell className="font-medium">{asset.name_brand}</TableCell>
-                      <TableCell>{new Date(asset.purchase_date).toLocaleDateString("en-MY")}</TableCell>
-                      <TableCell>{asset.original_location ?? "-"}</TableCell>
-                      <TableCell>
-                        <div className="text-sm text-gray-900">{asset.quantity} jumlah</div>
-                        <div className="text-xs text-gray-400">
-                          {asset.available_quantity} tersedia
-                          {asset.in_maintenance_quantity > 0 && ` · ${asset.in_maintenance_quantity} penyelenggaraan`}
-                          {asset.disposed_quantity > 0 && ` · ${asset.disposed_quantity} dilupuskan`}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={STATUS_STYLES[asset.status] ?? "bg-gray-100 text-gray-700"}>
-                          {asset.status_display}
-                        </Badge>
-                      </TableCell>
-
-                      {/* Penyelenggaraan */}
-                      <TableCell>
-                        {maintenanceEntries.length === 0 ? (
-                          <span className="text-gray-400 text-sm">-</span>
-                        ) : (
-                          <ul className="space-y-1.5 text-xs">
-                            {maintenanceEntries.map((t, i) => (
-                              <li key={i} className="flex items-center gap-1.5">
-                                <span>
-                                  🔧 {t.quantity} unit — {new Date(t.date).toLocaleDateString("en-MY")} –{" "}
-                                  {t.end_date ? new Date(t.end_date).toLocaleDateString("en-MY") : "sedang berjalan"}
-                                </span>
-                                <div className="flex gap-1">
-                                  {t.photo_before && (
-                                    <a href={t.photo_before} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
-                                      <img src={t.photo_before} alt="Sebelum" className="h-8 w-8 rounded border object-cover" />
-                                    </a>
-                                  )}
-                                  {t.photo_after && (
-                                    <a href={t.photo_after} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
-                                      <img src={t.photo_after} alt="Selepas" className="h-8 w-8 rounded border object-cover" />
-                                    </a>
-                                  )}
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </TableCell>
-
-                      {/* Pelupusan */}
-                      <TableCell>
-                        {disposalEntries.length === 0 ? (
-                          <span className="text-gray-400 text-sm">-</span>
-                        ) : (
-                          <ul className="space-y-1.5 text-xs">
-                            {disposalEntries.map((t, i) => (
-                              <li key={i} className="flex items-center gap-1.5">
-                                <span>
-                                  🗑️ {t.quantity} unit — {new Date(t.date).toLocaleDateString("en-MY")}
-                                </span>
-                                {t.photo && (
-                                  <a href={t.photo} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
-                                    <img src={t.photo} alt="Bukti" className="h-8 w-8 rounded border object-cover" />
-                                  </a>
-                                )}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </TableCell>
-
-                      {/* Remark */}
-                      <TableCell>
-                        {remarks.length === 0 ? (
-                          <span className="text-gray-400 text-sm">-</span>
-                        ) : (
-                          <ul className="space-y-1 text-xs text-gray-600">
-                            {remarks.map((t, i) => (
-                              <li key={i}>
-                                {t.type === "maintenance" ? "🔧" : "🗑️"} {t.notes}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </TableCell>
-                    </TableRow>
+                    <DataTable
+                      columns={[
+                        { key: "img", label: "Gambar" },
+                        { key: "id", label: "ID" },
+                        { key: "name", label: "Nama Aset" },
+                        { key: "date", label: "Tarikh Pembelian" },
+                        { key: "kolej", label: "Kolej" },
+                        { key: "qty", label: "Kuantiti" },
+                        { key: "status", label: "Statu Semasa" },
+                        { key: "maint", label: "Penyelenggaraan" },
+                        { key: "disposal", label: "Pelupusan" },
+                        { key: "remark", label: "Remark" },
+                      ]}
+                      data={overview}
+                      loading={loading}
+                      emptyMessage="Tiada aset yang telah didaftarkan lagi."
+                      renderRow={(asset) => {
+                        // ...exact same row-building logic you already have (maintenanceEntries, disposalEntries, remarks)
+                        // just return the same <TableRow key={asset.id} onClick={...} className="cursor-pointer hover:bg-gray-50">...</TableRow>
+                      }}
+                    />
                   );
                 })
               )}

@@ -23,7 +23,7 @@ export default function InventoryPage() {
     setLoadingInventory(true);
     try {
       const res = await API.get("/stock-movements/my-stock/");
-      setInventory(res.data);
+      setInventory(res.data.results ?? res.data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -35,7 +35,7 @@ export default function InventoryPage() {
     setLoadingHistory(true);
     try {
       const res = await API.get("/usage-logs/");
-      setRecords(res.data);
+      setRecords(res.data.results ?? res.data);
     } catch (err: any) {
       console.error(err?.response?.status, err?.response?.data);
     } finally {

@@ -44,7 +44,7 @@ export default function BookingForm({
         if (!open && !loading) onCancel();
       }}
     >
-      <DialogContent className="max-h-[85vh] max-w-md overflow-y-auto">
+      <DialogContent className="max-h-[85vh] p-10 overflow-y-auto md:max-w-md">
         {bookingSlot && (
           <>
             <DialogHeader>

@@ -32,8 +32,6 @@ type Props = {
   };
   onUsageChange: (id: number, field: "quantity" | "unit", value: number | string) => void;
   onSubmit: (id: number) => void;
-  // Status is no longer chosen by the volunteer -- only quantity is sent,
-  // and the backend derives the status from it.
   onUpdateStock: (id: number, quantity: number) => void;
   loading: boolean;
 };
@@ -135,7 +133,7 @@ export default function InventoryTable({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-gray-200">
+      <div className="hidden md:block overflow-x-auto rounded-xl border border-gray-200">
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50 hover:bg-gray-50">
@@ -296,6 +294,141 @@ export default function InventoryTable({
             )}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="md:hidden space-y-3">
+        {filteredInventory.map((item) => {
+          const status =STATUS_STYLES[item.status] ?? STATUS_STYLES.available;
+          const entry = usage[item.id] ?? {quantity: 0,unit: "cup",};
+          const isEditing = updateMode === item.id;
+          return (
+            <div
+              key={item.id}
+              className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+            >
+              {/* Item Header */}
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-semibold text-gray-900">{item.name}</h3>
+                  <p className="mt-1 text-sm text-gray-500">Stock: {item.volunteer_stock}</p>
+                </div>
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${status.badge}`}
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
+                  {status.label}
+                </span>
+              </div>
+              {/* Usage */}
+              <div className="mt-4">
+                <label className="text-xs font-medium text-gray-500">Log Usage</label>
+                <div className="mt-2 flex gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="Qty"
+                    value={entry.quantity || ""}
+                    onChange={(e)=>
+                      onUsageChange(
+                        item.id,
+                        "quantity",
+                        Number(e.target.value)
+                      )
+                    }
+                    className="h-10 w-24 rounded-lg border px-3 text-sm"
+                  />
+
+                  <select
+                    value={entry.unit}
+                    onChange={(e)=>
+                      onUsageChange(
+                        item.id,
+                        "unit",
+                        e.target.value
+                      )
+                    }
+                    className="h-10 flex-1 rounded-lg border px-2 text-sm"
+                  >
+                    {USAGE_UNITS.map((u)=>(
+                      <option key={u.value} value={u.value}>
+                        {u.label}
+                      </option>
+                    ))}
+                  </select>
+
+                </div>
+              </div>
+
+
+
+              {/* Action Buttons */}
+              <div className="mt-4 grid grid-cols-2 gap-2">
+
+                <button
+                  onClick={()=>onSubmit(item.id)}
+                  disabled={item.status==="out"}
+                  className=" h-10 rounded-lg bg-gray-900 text-sm font-medium text-white disabled:bg-gray-300 "
+                >
+                  Use
+                </button>
+
+                <button
+                  onClick={()=>{
+                    if(isEditing){
+                      setUpdateMode(null);
+                    }else{
+                      setUpdateMode(item.id);
+                      setStockQuantity(
+                        String(item.volunteer_stock)
+                      );
+                    }
+                  }}
+                  className="  h-10 rounded-lg border text-sm font-medium"
+                > {isEditing ? "Cancel" : "Update"}
+                </button>
+
+              </div>
+
+              {/* Update Form */}
+              {isEditing && (
+                <div className=" mt-4 rounded-lg border bg-gray-50 p-3 ">
+                  <label className="text-xs font-medium uppercase text-gray-400"> Update Quantity</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={stockQuantity}
+                    onChange={(e)=>
+                      setStockQuantity(e.target.value)
+                    }
+                    className=" mt-2 h-10 w-full rounded-lg border px-3 text-sm"
+                  />
+                  <p className="mt-2 text-xs text-gray-400">Status will update automatically based on quantity.</p>
+                  <button
+                    onClick={()=>{
+                      const finalQty = Number(stockQuantity);
+                      if(
+                        Number.isNaN(finalQty) ||
+                        finalQty < 0
+                      ){
+                        alert("Please enter a valid quantity");
+                        return;
+                      }
+
+                      onUpdateStock(
+                        item.id,
+                        finalQty
+                      );
+
+                      setUpdateMode(null);
+                    }}
+                    className=" mt-3 h-10 w-full rounded-lg bg-green-600 text-sm font-medium  text-white"> Save Changes
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

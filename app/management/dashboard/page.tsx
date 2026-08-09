@@ -19,8 +19,7 @@ import DashboardCard from "@/components/dashboard/chart/DashboardCard";
 import InventoryBySourceChart, { SourceBreakdown } from "@/components/dashboard/chart/InventoryBySourceChart";
 import FacultyAttendanceChart, { FacultyAttendance } from "@/components/dashboard/chart/FacultyAttendanceChart";
 import StudentUsageSummary, { StudentSummaryData } from "@/components/dashboard/chart/studentUsage";
-import type{DashboardSummary,SourceSummary,BookingStatusBreakdown}  from "@/types/movement"
-
+import type { DashboardSummary, SourceSummary } from "@/types/movement";
 
 const SOURCES = [
   { value: "donation", label: "Sumbangan", color: "#D9A441" },
@@ -79,16 +78,10 @@ function AttendanceBar({
   );
 }
 
-function StatusPill({ label, count, color }: { label: string; count: number; color: string }) {
-  return (
-    <div className="flex-1 min-w-[120px] border rounded-xl p-3 bg-white">
-      <div className="flex items-center gap-2 mb-1">
-        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-        <p className="text-xs text-[#5B7B87]">{label}</p>
-      </div>
-      <p className="text-xl font-bold text-[#16211C]">{count}</p>
-    </div>
-  );
+function asArray(data: any): any[] {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.results)) return data.results; // in case an endpoint is paginated
+  return [];
 }
 
 export default function ManagementDashboard() {
@@ -112,6 +105,33 @@ export default function ManagementDashboard() {
     const fetchDashboard = async () => {
       setLoading(true);
       try {
+        const results = await Promise.allSettled([
+          API.get("/inventory/"),
+          API.get("/requests/"),
+          API.get("/stock-movements/"), 
+          API.get("/attendance/management/walk-in/"),
+          API.get("/attendance/management/booking/"),
+          API.get("/kitchens/"),
+          API.get("/students/"),
+          API.get("/source-inventory/summary/"),
+          API.get("/attendance/summary/student/"),
+        ]);
+
+        const labels = [
+          "inventory", "requests", "stock-movements", "walk-in", "booking",
+          "kitchens", "students", "source-summary", "student-summary",
+        ];
+
+        results.forEach((r, i) => {
+          if (r.status === "rejected") {
+            console.log(
+              `Dashboard call [${labels[i]}] failed:`,
+              r.reason?.response?.status,
+              r.reason?.response?.data
+            );
+          }
+        });
+
         const [
           inventoryRes,
           requestRes,
@@ -120,63 +140,54 @@ export default function ManagementDashboard() {
           bookingRes,
           kitchenRes,
           studentRes,
-          allBookingsRes,
           sourceSummaryRes,
           studentSummaryRes,
-        ] = await Promise.all([
-          API.get("inventory/"),
-          API.get("requests/"),
-          API.get("stock-movements/"),
-          API.get("attendance/management/walk-in/"),
-          API.get("attendance/management/booking/"),
-          API.get("kitchens/"),
-          API.get("students/"),
-          API.get("kitchen-bookings/"),
-          API.get("source-inventory/summary/"),
-          API.get("attendance/summary/student/"),
-        ]);
+        ] = results.map((r) => (r.status === "fulfilled" ? r.value : { data: [] }));
+
+        const inventoryData = asArray(inventoryRes.data);
+        const requestData = asArray(requestRes.data);
+        const movementData = asArray(movementRes.data);
+        const walkinData = asArray(walkinRes.data);
+        const bookingData = asArray(bookingRes.data);
+        const kitchenData = asArray(kitchenRes.data);
+        const studentData = asArray(studentRes.data);
+        const sourceSummaryData = asArray(sourceSummaryRes.data) as SourceSummary[];
 
         const today = new Date().toISOString().split("T")[0];
-        const todayMovement = movementRes.data.filter((item: any) => item.created_at?.startsWith(today));
+        const todayMovement = movementData.filter((item: any) => item.created_at?.startsWith(today));
         const inventoryInToday = todayMovement
           .filter((item: any) => item.movement_type === "in" && item.kitchen === null)
           .reduce((sum: number, item: any) => sum + item.quantity, 0);
         const inventoryOutToday = todayMovement
           .filter((item: any) => item.movement_type === "out")
           .reduce((sum: number, item: any) => sum + item.quantity, 0);
-        const attendanceToday = [...walkinRes.data, ...bookingRes.data].filter((item: any) =>
+        const attendanceToday = [...walkinData, ...bookingData].filter((item: any) =>
           item.check_in_time?.startsWith(today)
         ).length;
-      
 
         setSummary({
-          totalItems: inventoryRes.data.length,
-          pendingRequests: requestRes.data.filter((item: any) => item.status === "pending").length,
+          totalItems: inventoryData.length,
+          pendingRequests: requestData.filter((item: any) => item.status === "pending").length,
           inventoryInToday,
           inventoryOutToday,
           attendanceToday,
-          totalKitchens: kitchenRes.data.length,
-          totalStudents: studentRes.data.length,
-          totalWalkin: walkinRes.data.length,
-          totalBooking: bookingRes.data.length,
+          totalKitchens: kitchenData.length,
+          totalStudents: studentData.length,
+          totalWalkin: walkinData.length,
+          totalBooking: bookingData.length,
         });
 
         const summaryMap = new Map<string, SourceSummary>(
-          (sourceSummaryRes.data as SourceSummary[]).map((item) => [
-            item.source,
-            item,
-          ])
+          sourceSummaryData.map((item) => [item.source, item])
         );
 
         setSourceBreakdown(
           SOURCES.map((s) => {
             const data = summaryMap.get(s.value);
-
             return {
               source: s.value,
               label: s.label,
               color: s.color,
-
               totalReceived: data?.total_quantity ?? 0,
               itemCount: data?.item_count ?? 0,
               totalAmount: data?.total_amount ?? 0,
@@ -185,8 +196,8 @@ export default function ManagementDashboard() {
         );
 
         const facultyMap = new Map<string, number>();
-        [...walkinRes.data, ...bookingRes.data].forEach((item: any) => {
-          const faculty = item.student.faculty ?? "Unknown";
+        [...walkinData, ...bookingData].forEach((item: any) => {
+          const faculty = item?.student?.faculty ?? "Unknown";
           facultyMap.set(faculty, (facultyMap.get(faculty) || 0) + 1);
         });
         setFacultyData(
@@ -195,9 +206,10 @@ export default function ManagementDashboard() {
             .sort((a, b) => b.count - a.count)
         );
 
-        setStudentSummary(studentSummaryRes.data);
-      } catch (error) {
-        console.log("Dashboard error", error);
+        setStudentSummary(studentSummaryRes.data ?? null);
+      } catch (error: any) {
+        console.log("Dashboard error:", error?.response?.status, error?.response?.data);
+        console.log("Dashboard error (raw):", error);
       } finally {
         setLoading(false);
       }
@@ -206,11 +218,10 @@ export default function ManagementDashboard() {
     fetchDashboard();
   }, []);
 
-  const netMovementToday =summary.inventoryInToday - summary.inventoryOutToday;
-  const totalAttendanceAllTime =summary.totalWalkin + summary.totalBooking;
-  const totalDonationAmount =sourceBreakdown.find((s) => s.source === "donation")?.totalAmount ?? 0;
-  const totalPurchaseAmount =sourceBreakdown.find((s) => s.source === "purchase")?.totalAmount ?? 0;
-
+  const netMovementToday = summary.inventoryInToday - summary.inventoryOutToday;
+  const totalAttendanceAllTime = summary.totalWalkin + summary.totalBooking;
+  const totalDonationAmount = sourceBreakdown.find((s) => s.source === "donation")?.totalAmount ?? 0;
+  const totalPurchaseAmount = sourceBreakdown.find((s) => s.source === "purchase")?.totalAmount ?? 0;
 
   return (
     <RoleGuard allowedRoles={["management"]}>
@@ -243,7 +254,7 @@ export default function ManagementDashboard() {
           </div>
         </div>
 
-        {/*attendance */}
+        {/* KITCHEN/STUDENT STATS */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {loading ? (
             Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
@@ -275,49 +286,47 @@ export default function ManagementDashboard() {
           </div>
         </div>
 
-        {/* STUDENT USAGE SUMMARY (category / purpose / by-kitchen / monthly trend) */}
+        {/* STUDENT USAGE SUMMARY */}
         <StudentUsageSummary data={studentSummary} loading={loading} />
 
         {/* CHARTS */}
-
         <div>
           <p className="text-xs font-semibold tracking-[0.2em] text-[#5B7B87] uppercase">
             Ringkasan Inventori
           </p>
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 mt-5">
-          <div className="lg:col-span-3">
-            <InventoryBySourceChart data={sourceBreakdown} loading={loading} />
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 mt-5">
+            <div className="lg:col-span-3">
+              <InventoryBySourceChart data={sourceBreakdown} loading={loading} />
+            </div>
+            <div className="lg:col-span-2">
+              <FacultyAttendanceChart data={facultyData} loading={loading} />
+            </div>
           </div>
-          <div className="lg:col-span-2">
-            <FacultyAttendanceChart data={facultyData} loading={loading} />
-          </div>
-        </div>
 
-        {/* ATTENDANCE BREAKDOWN + BOOKING STATUS */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 mt-4">
-          <div className="lg:col-span-3 border rounded-2xl bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
-            <h2 className="font-semibold text-lg text-[#16211C] mb-1">Cara pelajar hadir</h2>
-            <p className="text-sm text-[#5B7B87] mb-5">Tempahan vs. Walk-in</p>
-            <div className="space-y-5">
-              <AttendanceBar
-                label="Ditempah Lebih Awal"
-                count={summary.totalBooking}
-                total={totalAttendanceAllTime}
-                color="#114B44"
-                icon={<CalendarCheck size={14} />}
-              />
-              <AttendanceBar
-                label="Walked in"
-                count={summary.totalWalkin}
-                total={totalAttendanceAllTime}
-                color="#D9A441"
-                icon={<Footprints size={14} />}
-              />
+          {/* ATTENDANCE BREAKDOWN */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 mt-4">
+            <div className="lg:col-span-3 border rounded-2xl bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
+              <h2 className="font-semibold text-lg text-[#16211C] mb-1">Cara pelajar hadir</h2>
+              <p className="text-sm text-[#5B7B87] mb-5">Tempahan vs. Walk-in</p>
+              <div className="space-y-5">
+                <AttendanceBar
+                  label="Ditempah Lebih Awal"
+                  count={summary.totalBooking}
+                  total={totalAttendanceAllTime}
+                  color="#114B44"
+                  icon={<CalendarCheck size={14} />}
+                />
+                <AttendanceBar
+                  label="Walked in"
+                  count={summary.totalWalkin}
+                  total={totalAttendanceAllTime}
+                  color="#D9A441"
+                  icon={<Footprints size={14} />}
+                />
+              </div>
             </div>
           </div>
         </div>
-        </div>
-
 
         {/* SOURCE SUMMARY */}
         <div>
@@ -346,7 +355,6 @@ export default function ManagementDashboard() {
             </div>
           </div>
         </div>
-
 
         {/* FOOTNOTE */}
         <div className="border-t border-[#E0E6E4] pt-5 flex items-center justify-between flex-wrap gap-2">

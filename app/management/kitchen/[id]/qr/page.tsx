@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { QRCodeCanvas } from "qrcode.react";
 import API from "@/lib/api1";
+import PageHeader from "@/components/ui/page-header";
 
 export default function KitchenQRPage() {
   const params = useParams();
@@ -19,24 +20,20 @@ export default function KitchenQRPage() {
         console.log(err);
       }
     };
-
-    if (id) {
-      fetchQR();
-    }
+    if (id) fetchQR();
   }, [id]);
 
   if (!qr) {
-    return <div className="p-6">Loading QR...</div>;
+    return <div className="p-4 text-sm text-gray-500">Loading QR...</div>;
   }
 
   return (
-    <div className="p-6 flex flex-col items-center gap-8">
-      <h1 className="text-2xl font-bold">{qr.kitchen_name}</h1>
+    <div className="space-y-6">
+      <PageHeader title={qr.kitchen_name} subtitle={`Kod: ${qr.kitchen_code}`} />
 
-      <div className="border p-5 rounded item-center">
-        <h2 className="font-bold text-center mb-3">{qr.kitchen_code}QR Dapur</h2>
-        <QRCodeCanvas className="item-center w-full" value={qr.qr_url} size={300} />
-        <p className="text-sm text-muted-foreground text-center mt-3">
+      <div className="flex flex-col items-center gap-4 rounded-lg border bg-white p-6">
+        <QRCodeCanvas value={qr.qr_url} size={300} />
+        <p className="text-sm text-gray-500 text-center">
           Imbas untuk daftar masuk atau merekod aktiviti dapur
         </p>
       </div>

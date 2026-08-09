@@ -35,13 +35,15 @@ export default function BookingPage() {
   const fetchKitchens = async () => {
     try {
       const res = await API.get("/kitchens/");
-      const active = res.data.filter((k: Kitchen) => k.is_active);
+      console.log("Kitchens:", res.data);
+      const data = res.data.results ?? res.data;
+      const active = data.filter((k: Kitchen) => k.is_active);
       setKitchens(active);
       if (active.length > 0) {
         setSelectedKitchen(active[0].id);
       }
     } catch (err) {
-      console.log(err);
+      console.log("Kitchen error:", err);
     }
   };
 
@@ -49,10 +51,18 @@ export default function BookingPage() {
     setLoadingSlots(true);
     try {
       const res = await API.get(`/kitchen-slots/available/?kitchen=${kitchenId}`);
-      setSlots(res.data);
-      setSelectedDate(res.data.length > 0 ? res.data[0].date : "");
+      console.log("Slots:", res.data);
+      const data = res.data.results ?? res.data;
+      setSlots(data);
+      if (data.length > 0) {
+        setSelectedDate(data[0].date);
+      } else {
+        setSelectedDate("");
+      }
     } catch (err) {
-      console.log(err);
+      console.log("Slot error:", err);
+      setSlots([]);
+      setSelectedDate("");
     } finally {
       setLoadingSlots(false);
     }

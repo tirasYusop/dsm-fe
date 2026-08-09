@@ -7,6 +7,7 @@ import { Table, TableHeader, TableHead, TableRow, TableCell, TableBody } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import { Kitchen, ShiftSlot, WeekDay, VolunteerProfile } from "@/types/kitchen";
+import PageHeader from "@/components/ui/page-header";
 
 function startOfWeek(date: Date): string {
   const d = new Date(date);
@@ -37,9 +38,9 @@ export default function VolunteerSchedulePage() {
   const fetchKitchens = async () => {
     try {
       const res = await API.get("/kitchens/");
-      setKitchens(res.data);
+      setKitchens(res.data.results ?? res.data);
       if (!selectedKitchen && res.data.length > 0) {
-        setSelectedKitchen(String(res.data[0].id));
+        setSelectedKitchen(String(res.data.results ?? res.data[0].id));
       }
     } catch (err) {
       console.log(err);
@@ -51,7 +52,7 @@ export default function VolunteerSchedulePage() {
     setLoading(true);
     try {
       const res = await API.get(`/scheduled-shifts/week/?kitchen=${selectedKitchen}&start=${weekStart}`);
-      setDays(res.data);
+      setDays(res.data.results ?? res.data);
     } catch (err) {
       console.log(err);
     } finally {
@@ -63,7 +64,7 @@ export default function VolunteerSchedulePage() {
     if (!selectedKitchen) return;
     try {
       const res = await API.get(`/volunteer-profiles/?kitchen=${selectedKitchen}`);
-      setVolunteers(res.data);
+      setVolunteers(res.data.results ?? res.data);
     } catch (err) {
       console.log(err);
     }
@@ -112,10 +113,9 @@ export default function VolunteerSchedulePage() {
 
   return (
     <RoleGuard allowedRoles={["management"]}>
-      <div className="mx-auto space-y-5 p-3">
+      <div className="mx-auto space-y-6">
         <div>
-          <h1 className="text-lg font-semibold text-gray-900 sm:text-2xl sm:font-bold">Jadual sukarelawan</h1>
-          <p className="text-sm text-gray-500">Jadual giliran mingguan merangkumi 4 slot syif.</p>
+          <PageHeader title="Jadual Bertugas sukarelawan" subtitle="Daftarkan sukarelawan di sini, mereka akan memilih nama masing-masing untuk merekod waktu masuk/keluar di halaman sukarelawan." />
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

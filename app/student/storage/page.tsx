@@ -33,7 +33,7 @@ export default function StudentStoragePage() {
   const fetchKitchens = async () => {
     try {
       const res = await API.get("/kitchens/"); 
-      setKitchens(res.data);
+      setKitchens(res.data.results ?? res.data);
     } catch (err) {
       console.log(err);
     }
@@ -43,7 +43,7 @@ export default function StudentStoragePage() {
     setLoading(true);
     try {
       const res = await API.get("/student-storage/");
-      setLogs(res.data);
+      setLogs(res.data.results ?? res.data);
     } catch (err) {
       console.log(err);
     } finally {

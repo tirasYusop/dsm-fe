@@ -29,7 +29,7 @@ export default function RequestFormDrawer({ open, onClose, onDone }: Props) {
   useEffect(() => {
     if (!open) return;
     API.get("/inventory/")
-      .then((res) => setItems(res.data))
+      .then((res) => setItems(res.data.results ?? res.data))
       .catch((err) => console.log(err));
   }, [open]);
 

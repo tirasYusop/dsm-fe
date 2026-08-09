@@ -13,8 +13,9 @@ export interface Kitchen {
   code: string;
   is_active: boolean;
   location : string;
-};
-
+  status?: "active" | "maintenance" | "closed";
+  status_note?: string;
+}
 export interface Participant {
   id:number;
   name:string;

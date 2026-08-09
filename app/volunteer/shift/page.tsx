@@ -43,7 +43,7 @@ export default function VolunteerTimeLogPage() {
   const fetchRoster = async () => {
     try {
       const res = await API.get("/volunteer-profiles/");
-      setRoster(res.data);
+      setRoster(res.data.results ?? res.data);
     } catch (err) {
       console.log(err);
     }

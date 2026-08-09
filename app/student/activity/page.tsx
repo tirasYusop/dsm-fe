@@ -44,7 +44,7 @@ export default function ActivityPage() {
     (async () => {
       try {
         const res = await API.get(`/inventory/foodbank-stock/?kitchen=${kitchenId}`);
-        setFoodbankItems(res.data);
+        setFoodbankItems(res.data.results ?? res.data);
       } catch (err) {
         console.error(err);
       } finally {

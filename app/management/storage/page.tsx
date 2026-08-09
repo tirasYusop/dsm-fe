@@ -3,9 +3,21 @@
 import { useEffect, useState } from "react";
 import API from "@/lib/api1";
 import RoleGuard from "@/components/auth/roleguard";
+import PageHeader from "@/components/ui/page-header";
+import DataTable from "@/components/table";
 import StorageStatusBadge from "@/components/inventory/storageStatusBadge";
-import { Table, TableHeader, TableHead, TableRow, TableCell, TableBody } from "@/components/ui/table";
-import type {Kitchen , StorageLog} from "@/types/kitchen"
+import { TableRow, TableCell } from "@/components/ui/table";
+import type { Kitchen, StorageLog } from "@/types/kitchen";
+
+const COLUMNS = [
+  { key: "no", label: "Bil.", className: "w-10" },
+  { key: "item", label: "Item" },
+  { key: "student", label: "Pelajar" },
+  { key: "kitchen", label: "Dapur" },
+  { key: "stored", label: "Tarikh Disimpan" },
+  { key: "limit", label: "Had" },
+  { key: "status", label: "Status" },
+];
 
 export default function ManagementStudentStoragePage() {
   const [logs, setLogs] = useState<StorageLog[]>([]);
@@ -17,8 +29,8 @@ export default function ManagementStudentStoragePage() {
 
   const fetchKitchens = async () => {
     try {
-      const res = await API.get("/kitchens/"); 
-      setKitchens(res.data);
+      const res = await API.get("/kitchens/");
+      setKitchens(res.data.results ?? res.data);
     } catch (err) {
       console.log(err);
     }
@@ -32,8 +44,8 @@ export default function ManagementStudentStoragePage() {
         API.get(`/student-storage/${query}`),
         API.get(`/student-storage/alerts/${query}`),
       ]);
-      setLogs(logsRes.data);
-      setAlerts(alertsRes.data);
+      setLogs(logsRes.data.results ?? logsRes.data);
+      setAlerts(alertsRes.data.results ?? alertsRes.data);
     } catch (err) {
       console.log(err);
     } finally {
@@ -59,13 +71,11 @@ export default function ManagementStudentStoragePage() {
 
   return (
     <RoleGuard allowedRoles={["management"]}>
-      <div className="space-y-5">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">Ruang Simpanan Item Pelajar</h1>
-          <p className="text-sm text-gray-500">
-            Pelajar telah merekodkan kemasukan bahan mentah ke dalam stor dapur. Item yang telah disimpan melebihi 3 hari ditandakan.
-          </p>
-        </div>
+      <div className="space-y-6">
+        <PageHeader
+          title="Ruang Simpanan Item Pelajar"
+          subtitle="Pelajar telah merekodkan kemasukan bahan mentah ke dalam stor dapur. Item yang telah disimpan melebihi 3 hari ditandakan."
+        />
 
         {alerts.length > 0 && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
@@ -86,15 +96,13 @@ export default function ManagementStudentStoragePage() {
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Tapis mengikut dapur</label>
             <select
-              className="w-56 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
+              className="w-56 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
               value={selectedKitchen}
               onChange={(e) => setSelectedKitchen(e.target.value)}
             >
               <option value="">All kitchens</option>
               {kitchens.map((k) => (
-                <option key={k.id} value={k.id}>
-                  {k.code}
-                </option>
+                <option key={k.id} value={k.id}>{k.code}</option>
               ))}
             </select>
           </div>
@@ -102,7 +110,7 @@ export default function ManagementStudentStoragePage() {
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Cari pelajar</label>
             <input
-              className="w-56 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
+              className="w-56 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
               placeholder="Name or email"
               value={studentQuery}
               onChange={(e) => setStudentQuery(e.target.value)}
@@ -110,51 +118,26 @@ export default function ManagementStudentStoragePage() {
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-lg border bg-white">
-          <Table className="w-full">
-            <TableHeader>
-              <TableRow className="bg-gray-100">
-                <TableHead className="p-2 text-left font-bold w-10">Bil.</TableHead>
-                <TableHead className="p-2 text-left font-bold">Item</TableHead>
-                <TableHead className="p-2 text-left font-bold">Pelajar</TableHead>
-                <TableHead className="p-2 text-left font-bold">Dapur</TableHead>
-                <TableHead className="p-2 text-left font-bold">Tarikh Disimpan</TableHead>
-                <TableHead className="p-2 text-left font-bold">Had</TableHead>
-                <TableHead className="p-2 text-left font-bold">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={6}>Loading...</TableCell>
-                </TableRow>
-              ) : filteredLogs.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="p-4 text-center text-gray-500">
-                    Tiada log simpanan lagi.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredLogs.map((log,index) => (
-                  <TableRow key={log.id} className="border-t">
-                    <TableCell className="p-2 font-medium">{index +1}</TableCell>
-                    <TableCell className="p-2 font-medium">{log.item_name}</TableCell>
-                    <TableCell className="p-2">
-                      <p className="font-medium text-gray-900">{log.student_name}</p>
-                      <p className="text-xs text-gray-500">{log.student_email}</p>
-                    </TableCell>
-                    <TableCell className="p-2">{log.kitchen_name}</TableCell>
-                    <TableCell className="p-2">{log.date_stored}</TableCell>
-                    <TableCell className="p-2">{log.expiry_date}</TableCell>
-                    <TableCell className="p-2">
-                      <StorageStatusBadge log={log} />
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <DataTable
+          columns={COLUMNS}
+          data={filteredLogs}
+          loading={loading}
+          emptyMessage="Tiada log simpanan lagi."
+          renderRow={(log, index) => (
+            <TableRow key={log.id} className="border-t">
+              <TableCell className="p-2">{index + 1}</TableCell>
+              <TableCell className="p-2">{log.item_name}</TableCell>
+              <TableCell className="p-2">
+                <p className="font-medium text-gray-900">{log.student_name}</p>
+                <p className="text-xs text-gray-500">{log.student_email}</p>
+              </TableCell>
+              <TableCell className="p-2">{log.kitchen_name}</TableCell>
+              <TableCell className="p-2">{log.date_stored}</TableCell>
+              <TableCell className="p-2">{log.expiry_date}</TableCell>
+              <TableCell className="p-2"><StorageStatusBadge log={log} /></TableCell>
+            </TableRow>
+          )}
+        />
       </div>
     </RoleGuard>
   );

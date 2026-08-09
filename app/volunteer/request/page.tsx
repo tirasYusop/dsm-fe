@@ -69,7 +69,7 @@ export default function RequestListPage() {
     setLoading(true);
     try {
       const res = await API.get("/requests/");
-      setRequests(res.data);
+      setRequests(res.data.results ?? res.data);
     } catch (err) {
       console.log(err);
     } finally {

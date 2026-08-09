@@ -9,6 +9,7 @@ import { Clock, Users, Timer, Download } from "lucide-react";
 import { Shift, Kitchen } from "@/types/kitchen";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import PageHeader from "@/components/ui/page-header";
 
 function formatDuration(minutes: number) {
   const h = Math.floor(minutes / 60);
@@ -35,7 +36,7 @@ export default function VolunteerReportPage() {
   const fetchKitchens = async () => {
     try {
       const res = await API.get("/kitchens/");
-      setKitchens(res.data);
+      setKitchens(res.data.results ?? res.data);
     } catch (err) {
       console.log(err);
     }
@@ -46,7 +47,7 @@ export default function VolunteerReportPage() {
     try {
       const query = kitchenId ? `?kitchen=${kitchenId}` : "";
       const res = await API.get(`/volunteer-shifts/${query}`);
-      setShifts(res.data);
+      setShifts(res.data.results ?? res.data);
     } catch (err) {
       console.log(err);
     } finally {
@@ -120,10 +121,9 @@ export default function VolunteerReportPage() {
 
   return (
     <RoleGuard allowedRoles={["management"]}>
-      <div className="mx-auto space-y-5 p-3">
+      <div className="mx-auto space-y-6">
         <div>
-          <h1 className="text-lg font-semibold text-gray-900 sm:text-xl">Laporan Sukarelawan</h1>
-          <p className="text-sm text-gray-500">Rekod daftar masuk/daftar keluar sukarelawan anda.</p>
+          <PageHeader title="Laporan Sukarelawan" subtitle="Rekod daftar masuk/daftar keluar sukarelawan anda." />
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

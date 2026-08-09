@@ -36,7 +36,7 @@ export default function MyBookingsPage() {
   const fetchBookings = async () => {
     try {
       const res = await API.get("/kitchen-bookings/my_bookings/");
-      setBookings(res.data);
+      setBookings(res.data.results ?? res.data);
     } catch (err) {
       console.log(err);
     } finally {
