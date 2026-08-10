@@ -62,14 +62,14 @@ export default function UsageHistoryTable({ records, loading }: Props) {
         </select>
 
         <div className="flex items-center gap-1.5 text-sm text-gray-500">
-          <span>From</span>
+          <span>Dari</span>
           <input
             type="date"
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
             className="rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
           />
-          <span>to</span>
+          <span>To</span>
           <input
             type="date"
             value={dateTo}
@@ -96,115 +96,83 @@ export default function UsageHistoryTable({ records, loading }: Props) {
       <div className="md:hidden space-y-3">
 
       {
-      filteredRecords.map((record)=>{
+      filteredRecords.map((record)=>{ const date = new Date(record.created_at);
+        return (
+          <div
+            key={record.id}
+            className="rounded-xl border p-4 bg-white shadow-sm">
+            <div className="flex justify-between">
+              <p className="font-semibold">{record.item_name}</p>
+              <p className="text-sm text-gray-500">{record.quantity} {record.usage_unit}</p>
+            </div>
+            <p className="mt-2 text-xs text-gray-400">{date.toLocaleString()}</p>
+          </div>
+          )})}
+          </div>
 
-      const date = new Date(record.created_at);
-
-      return (
-
-      <div
-      key={record.id}
-      className="
-      rounded-xl
-      border
-      p-4
-      bg-white
-      shadow-sm
-      "
-      >
-
-      <div className="flex justify-between">
-
-      <p className="font-semibold">
-      {record.item_name}
-      </p>
-
-      <p className="text-sm text-gray-500">
-      {record.quantity} {record.usage_unit}
-      </p>
-
-      </div>
-
-
-      <p className="mt-2 text-xs text-gray-400">
-      {
-      date.toLocaleString()
-      }
-      </p>
-
-
-      </div>
-
-      )
-
-      })
-      }
-
-      </div>
-
-      <div className="hidden md:block overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-gray-50 hover:bg-gray-50">
-              <TableHead className="w-10">No</TableHead>
-              <TableHead>Item</TableHead>
-              <TableHead>Used</TableHead>
-              <TableHead>Date</TableHead>
-            </TableRow>
-          </TableHeader>
-
-          <TableBody>
-            {loading ? (
-              <>
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <TableRow key={`skeleton-${i}`}>
-                    <TableCell colSpan={4}>
-                      <div className="h-5 w-full animate-pulse rounded bg-gray-100" />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </>
-            ) : filteredRecords.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="py-6 text-center text-sm text-gray-400">
-                  No usage records match this filter.
-                </TableCell>
+        <div className="hidden md:block overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-gray-50 hover:bg-gray-50">
+                <TableHead className="w-10">Bil.</TableHead>
+                <TableHead>Item</TableHead>
+                <TableHead>Kuantiti</TableHead>
+                <TableHead>Tarikh</TableHead>
               </TableRow>
-            ) : (
-              filteredRecords.map((record, index) => {
-                const date = new Date(record.created_at);
-                const dateLabel = date.toLocaleDateString(undefined, {
-                  month: "short",
-                  day: "numeric",
-                });
-                const timeLabel = date.toLocaleTimeString(undefined, {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                });
+            </TableHeader>
 
-                return (
-                  <TableRow key={record.id}>
-                    <TableCell className="text-gray-400">{index + 1}</TableCell>
+            <TableBody>
+              {loading ? (
+                <>
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <TableRow key={`skeleton-${i}`}>
+                      <TableCell colSpan={4}>
+                        <div className="h-5 w-full animate-pulse rounded bg-gray-100" />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </>
+              ) : filteredRecords.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="py-6 text-center text-sm text-gray-400">
+                    No usage records match this filter.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredRecords.map((record, index) => {
+                  const date = new Date(record.created_at);
+                  const dateLabel = date.toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                  });
+                  const timeLabel = date.toLocaleTimeString(undefined, {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  });
 
-                    <TableCell className="font-medium text-gray-900">
-                      {record.item_name}
-                    </TableCell>
+                  return (
+                    <TableRow key={record.id}>
+                      <TableCell className="text-gray-400">{index + 1}</TableCell>
 
-                    <TableCell className="text-gray-700">
-                      {record.quantity} {record.usage_unit}
-                    </TableCell>
+                      <TableCell className="font-medium text-gray-900">
+                        {record.item_name}
+                      </TableCell>
 
-                    <TableCell className="whitespace-nowrap text-gray-500">
-                      {dateLabel}{" "}
-                      <span className="text-gray-400">{timeLabel}</span>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                      <TableCell className="text-gray-700">
+                        {record.quantity} {record.usage_unit}
+                      </TableCell>
+
+                      <TableCell className="whitespace-nowrap text-gray-500">
+                        {dateLabel}{" "}
+                        <span className="text-gray-400">{timeLabel}</span>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
     </div>
   );
 }

@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Star, Loader2, MessageSquare, Filter } from "lucide-react";
+import { Star, Loader2, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import API from "@/lib/api1";
 import RoleGuard from "@/components/auth/roleguard";
 import PageHeader from "@/components/ui/page-header";
+import FilterBar from "@/components/filterBar";
+import ExportButton from "@/components/exportButton";
 
 interface FeedbackItem {
   id: number;
@@ -28,6 +30,7 @@ interface FeedbackSummary {
   total_feedback: number;
   rating_breakdown: Record<number, number>;
 }
+
 function StarRow({ rating }: { rating: number }) {
   return (
     <div className="flex gap-0.5">
@@ -76,8 +79,7 @@ export default function FeedbackManagementPage() {
       try {
         const res = await API.get("/kitchens/");
         setKitchens(res.data.results ?? res.data);
-      } catch {
-      }
+      } catch {}
     }
     fetchKitchens();
   }, []);
@@ -125,9 +127,7 @@ export default function FeedbackManagementPage() {
           total_feedback: Number(res.data.total_feedback) || 0,
           rating_breakdown: res.data.rating_breakdown ?? { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
         });
-      } catch {
-        // leave summary at previous values
-      }
+      } catch {}
     }
     fetchSummary();
   }, [selectedKitchen]);
@@ -139,15 +139,32 @@ export default function FeedbackManagementPage() {
     setSelectedRating("");
   };
 
+  const exportRows = feedback.map((f, i) => [
+    (page - 1) * pageSize + i + 1,
+    f.student_name,
+    f.kitchen_name || "Umum",
+    f.rating,
+    f.comment || "-",
+    formatDate(f.created_at),
+  ]);
+
   return (
     <RoleGuard allowedRoles={["management"]}>
       <div className="space-y-6">
         <PageHeader
           title="Maklum Balas Pengguna"
           subtitle="Semua maklum balas yang diterima daripada pelajar mengenai Dapur Siswa."
+          action={
+            <ExportButton
+              title="Maklum Balas Pengguna"
+              filename="feedback-report"
+              columns={["No", "Pelajar", "Dapur", "Rating", "Komen", "Tarikh"]}
+              rows={exportRows}
+              subtitle={`Purata: ${summary.average_rating.toFixed(2)} · Jumlah: ${summary.total_feedback} (halaman semasa)`}
+            />
+          }
         />
 
-        {/* Summary cards */}
         <div className="grid gap-4 sm:grid-cols-3">
           <Card className="border-0 bg-white/70 shadow-md backdrop-blur-xl dark:bg-gray-900/70">
             <CardContent className="flex items-center gap-4 py-6">
@@ -155,9 +172,7 @@ export default function FeedbackManagementPage() {
                 <Star className="h-6 w-6" fill="white" fillOpacity={0.3} />
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Penilaian Purata
-                </p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Penilaian Purata</p>
                 <p className="text-2xl font-bold">{summary.average_rating.toFixed(2)}</p>
               </div>
             </CardContent>
@@ -169,9 +184,7 @@ export default function FeedbackManagementPage() {
                 <MessageSquare className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Jumlah Maklum Balas
-                </p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Jumlah Maklum Balas</p>
                 <p className="text-2xl font-bold">{summary.total_feedback}</p>
               </div>
             </CardContent>
@@ -183,59 +196,32 @@ export default function FeedbackManagementPage() {
                 <Star className="h-6 w-6" fill="white" fillOpacity={0.3} />
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Penilaian 5 Bintang
-                </p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Penilaian 5 Bintang</p>
                 <p className="text-2xl font-bold">{summary.rating_breakdown[5] ?? 0}</p>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Filters — same input styling pattern as HistoryPage */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-3">
-            <Filter className="h-4 w-4 text-muted-foreground" />
+        <FilterBar
+          selects={[
+            {
+              value: selectedKitchen,
+              onChange: setSelectedKitchen,
+              options: kitchens.map((k) => ({ value: String(k.id), label: k.name })),
+              allLabel: "Semua Dapur",
+            },
+            {
+              value: selectedRating,
+              onChange: setSelectedRating,
+              options: [5, 4, 3, 2, 1].map((r) => ({ value: String(r), label: `${r} Bintang` })),
+              allLabel: "Semua Penilaian",
+            },
+          ]}
+          hasActiveFilters={hasActiveFilters}
+          onClear={clearFilters}
+        />
 
-            <select
-              value={selectedKitchen}
-              onChange={(e) => setSelectedKitchen(e.target.value)}
-              className="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
-            >
-              <option value="">Semua Dapur</option>
-              {kitchens.map((k) => (
-                <option key={k.id} value={k.id}>
-                  {k.name}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={selectedRating}
-              onChange={(e) => setSelectedRating(e.target.value)}
-              className="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
-            >
-              <option value="">Semua Penilaian</option>
-              {[5, 4, 3, 2, 1].map((r) => (
-                <option key={r} value={r}>
-                  {r} Bintang
-                </option>
-              ))}
-            </select>
-
-            {hasActiveFilters && (
-              <button
-                onClick={clearFilters}
-                className="text-xs font-medium text-gray-500 underline hover:text-gray-700"
-                type="button"
-              >
-                Kosongkan penapis
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Feedback list */}
         <Card className="border-0 bg-white/70 shadow-md backdrop-blur-xl dark:bg-gray-900/70">
           <CardHeader>
             <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
@@ -248,20 +234,13 @@ export default function FeedbackManagementPage() {
                 <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
               </div>
             ) : error ? (
-              <p className="text-center text-sm text-muted-foreground">
-                Tidak dapat memuatkan maklum balas.
-              </p>
+              <p className="text-center text-sm text-muted-foreground">Tidak dapat memuatkan maklum balas.</p>
             ) : feedback.length === 0 ? (
-              <p className="py-10 text-center text-sm text-muted-foreground">
-                Tiada maklum balas ditemui.
-              </p>
+              <p className="py-10 text-center text-sm text-muted-foreground">Tiada maklum balas ditemui.</p>
             ) : (
               <div className="space-y-4">
                 {feedback.map((f) => (
-                  <div
-                    key={f.id}
-                    className="rounded-xl border border-gray-100 p-4 dark:border-gray-800"
-                  >
+                  <div key={f.id} className="rounded-xl border border-gray-100 p-4 dark:border-gray-800">
                     <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <p className="font-semibold">{f.student_name}</p>
@@ -271,9 +250,7 @@ export default function FeedbackManagementPage() {
                       </div>
                       <StarRow rating={f.rating} />
                     </div>
-                    {f.comment && (
-                      <p className="mt-2 text-sm text-muted-foreground">{f.comment}</p>
-                    )}
+                    {f.comment && <p className="mt-2 text-sm text-muted-foreground">{f.comment}</p>}
                   </div>
                 ))}
               </div>
@@ -281,7 +258,6 @@ export default function FeedbackManagementPage() {
           </CardContent>
         </Card>
 
-        {/* Pagination controls — same pattern as HistoryPage / InventoryPage */}
         <div className="flex items-center justify-center gap-4 border-t pt-4">
           <Button variant="outline" disabled={page === 1 || loading} onClick={() => setPage(page - 1)}>
             Previous

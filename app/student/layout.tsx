@@ -16,24 +16,24 @@ export default function DashboardLayout({
     {
       label: "Kitchen Booking",
       items: [
-        { label: "Booking", href: "/student/booking" },
-        { label: "My Booking", href: "/student/booking/history" },
+        { label: "Tempahan", href: "/student/booking" },
+        { label: "Sejarah Tempahan", href: "/student/booking/history" },
       ],
     },
     {
-      label: "Activity",
+      label: "Aktiviti",
       items: [
-        { label: "Scan QR", href: "/student/scan" },
-        { label: "Activity", href: "/student/activity/" },
+        { label: "Imbas QR", href: "/student/scan" },
+        { label: "Aktiviti", href: "/student/activity/" },
       ],
     },
     {
-      label: "Storage",
-      items: [{ label: "Raw Material Storage", href: "/student/storage/" }],
+      label: "Penyimpanan",
+      items: [{ label: "Penyimpanan Bahan", href: "/student/storage/" }],
     },
     {
-      label: "Feedback",
-      items: [{ label: "Feedback", href: "/student/feedback/" }],
+      label: "Maklum Balas",
+      items: [{ label: "Maklum Balas", href: "/student/feedback/" }],
     },
   ];
 

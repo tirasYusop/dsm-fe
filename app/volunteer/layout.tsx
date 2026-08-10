@@ -15,25 +15,21 @@ export default function DashboardLayout({
       ],
     },
     {
-      label: "Student",
+      label: "Pelajar",
       items: [
-        { label: "Booking", href: "/volunteer/booking" },
+        { label: "Tempahan", href: "/volunteer/booking" },
       ],
     },
     {
-      label: "Inventory",
+      label: "Inventori",
       items: [
-        { label: "Inventory", href: "/volunteer/inventory" },
+        { label: "Inventori", href: "/volunteer/inventory" },
+        { label: "Penggunaan Inventori", href: "/volunteer/usage" },
+        { label: "Permintaan Inventori", href: "/volunteer/request" },
       ],
     },
     {
-      label: "Requests",
-      items: [
-        { label: "Request Items", href: "/volunteer/request" },
-      ],
-    },
-    {
-      label: "Shift",
+      label: "Shif",
       items: [
         { label: "Clock in", href: "/volunteer/shift" },
         { label: "Jadual Bertugas", href: "/volunteer/schedul" },

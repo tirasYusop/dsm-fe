@@ -18,13 +18,13 @@ type Booking = {
 function statusBadge(booking: Booking) {
   switch (booking.display_status) {
     case "cancelled":
-      return { label: "Cancelled", classes: "bg-gray-100 text-gray-600" };
+      return { label: "Dibatalkan", classes: "bg-gray-100 text-gray-600" };
     case "attended":
-      return { label: "Checked in", classes: "bg-emerald-50 text-emerald-700" };
+      return { label: "Telah Hadir", classes: "bg-emerald-50 text-emerald-700" };
     case "expired":
-      return { label: "Expired", classes: "bg-gray-100 text-gray-500" };
+      return { label: "Tamat Tempoh", classes: "bg-gray-100 text-gray-500" };
     default:
-      return { label: "Confirmed", classes: "bg-blue-50 text-blue-700" };
+      return { label: "Disahkan", classes: "bg-blue-50 text-blue-700" };
   }
 }
 
@@ -54,7 +54,7 @@ export default function RecentBookings() {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-sm font-semibold">
           <CalendarDays className="h-4 w-4 text-gray-400" />
-          Recent bookings
+          Tempahan Terkini
         </CardTitle>
       </CardHeader>
 
@@ -62,7 +62,7 @@ export default function RecentBookings() {
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading...</p>
         ) : recent.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No bookings yet.</p>
+          <p className="text-sm text-muted-foreground">Tiada tempahan lagi.</p>
         ) : (
           recent.map((item) => {
             const s = statusBadge(item);

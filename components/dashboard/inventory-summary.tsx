@@ -17,21 +17,21 @@ export default function InventorySummary({
   loading: boolean;
 }) {
   const stats = [
-    { label: "Inventory Items", value: summary?.total_inventory_items, icon: Boxes, accent: "text-foreground" },
+    { label: "Item Inventori", value: summary?.total_inventory_items, icon: Boxes, accent: "text-foreground" },
     {
-      label: "Low Stock",
+      label: "Stok Rendah",
       value: summary?.low_stock_items,
       icon: PackageX,
       accent: summary && summary.low_stock_items > 0 ? "text-red-500" : "text-green-600",
     },
-    { label: "Pending Requests", value: summary?.pending_requests, icon: ClipboardList, accent: "text-yellow-500" },
-    { label: "Used Today", value: summary?.today_usage, icon: Utensils, accent: "text-foreground" },
+    { label: "Permintaan Tertunda", value: summary?.pending_requests, icon: ClipboardList, accent: "text-yellow-500" },
+    { label: "Digunakan Hari Ini", value: summary?.today_usage, icon: Utensils, accent: "text-foreground" },
   ];
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Inventory Summary</CardTitle>
+        <CardTitle className="text-lg">Ringakasan Inventori</CardTitle>
       </CardHeader>
       <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
         {stats.map((s) => (

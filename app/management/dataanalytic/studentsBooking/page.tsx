@@ -1,12 +1,14 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import API from "@/lib/api1";
 import { TableRow, TableCell } from "@/components/ui/table";
 import DataTable from "@/components/table";
 import PageHeader from "@/components/ui/page-header";
 import SectionHeading from "@/components/ui/section-heading";
 import RoleGuard from "@/components/auth/roleguard";
+import FilterBar from "@/components/filterBar";
+import ExportButton from "@/components/exportButton";
 import type { Attendance, Participant } from "@/types/attandance";
 
 const COLUMNS = [
@@ -27,6 +29,7 @@ export default function StudentBookingPage() {
   const [expandedBookingId, setExpandedBookingId] = useState<number | null>(null);
   const [participantsCache, setParticipantsCache] = useState<Record<number, Participant[]>>({});
   const [loadingParticipants, setLoadingParticipants] = useState(false);
+  const [search, setSearch] = useState("");
 
   useEffect(() => { fetchBooking(); }, []);
 
@@ -63,17 +66,55 @@ export default function StudentBookingPage() {
     }
   };
 
-  const groupedKitchen = records.reduce((acc: Record<string, Attendance[]>, item) => {
+  const filteredRecords = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return records;
+    return records.filter(
+      (r) =>
+        r.student.name.toLowerCase().includes(q) ||
+        r.student.student_id.toLowerCase().includes(q)
+    );
+  }, [records, search]);
+
+  const groupedKitchen = filteredRecords.reduce((acc: Record<string, Attendance[]>, item) => {
     const kitchenId = item.kitchen?.id?.toString() ?? "unknown";
     if (!acc[kitchenId]) acc[kitchenId] = [];
     acc[kitchenId].push(item);
     return acc;
   }, {});
 
+  const exportRows = filteredRecords.map((item, index) => [
+    index + 1,
+    item.student.student_id,
+    item.student.name,
+    item.student.faculty,
+    item.booking?.slot.date ?? "-",
+    item.booking ? `${item.booking.slot.start_time} - ${item.booking.slot.end_time}` : "-",
+    item.booking?.number_of_people ?? "-",
+    item.attendance_type,
+    new Date(item.check_in_time).toLocaleString(),
+  ]);
+
   return (
     <RoleGuard allowedRoles={["management"]}>
       <div className="space-y-6">
-        <PageHeader title="Kehadiran Pelajar (Tempahan)" />
+        <PageHeader
+          title="Kehadiran Pelajar (Tempahan)"
+          action={
+            <ExportButton
+              title="Kehadiran Pelajar (Tempahan)"
+              filename="student-booking-attendance"
+              columns={["No", "ID Pelajar", "Nama", "Fakulti", "Tarikh", "Slot", "Jumlah", "Jenis", "Check In"]}
+              rows={exportRows}
+            />
+          }
+        />
+
+        <FilterBar
+          search={{ value: search, onChange: setSearch, placeholder: "Cari nama / ID pelajar..." }}
+          hasActiveFilters={!!search}
+          onClear={() => setSearch("")}
+        />
 
         {Object.keys(groupedKitchen).map((kitchenId) => {
           const kitchenRecords = groupedKitchen[kitchenId];

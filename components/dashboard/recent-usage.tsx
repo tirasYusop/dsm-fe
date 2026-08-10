@@ -14,13 +14,13 @@ export default function RecentUsage({ usage, loading }: { usage: UsageEntry[]; l
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Recent Usage</CardTitle>
+        <CardTitle className="text-lg">Penggunaan Terkini</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {loading ? (
           Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)
         ) : usage.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No usage recorded yet.</p>
+          <p className="text-sm text-muted-foreground">Tiada rekod penggunaan lagi.</p>
         ) : (
           usage.map((u) => (
             <div key={u.id} className="flex justify-between border-b pb-2 text-sm last:border-b-0 last:pb-0">

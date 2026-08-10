@@ -12,6 +12,8 @@ import { Table, TableHeader, TableHead, TableRow, TableCell, TableBody } from "@
 import type { SourceStock, ItemWithStock, MovementTarget } from "@/types/inventory";
 import PageHeader from "@/components/ui/page-header";
 import PillTabs from "@/components/ui/pill-tabs";
+import PaginationControls from "@/components/common/PaginationControls";
+import { getResults, getPageMeta, type PaginatedResponse } from "@/lib/pagination";
 
 const SOURCES = [
   { value: "donation", label: "Donation" },
@@ -32,11 +34,13 @@ export default function InventoryPage() {
   const [inPage, setInPage] = useState(1);
   const [inTotalPages, setInTotalPages] = useState(1);
   const [inPageSize, setInPageSize] = useState(1);
+  const [inCount, setInCount] = useState(0);
 
   // pagination state — "Pindah Keluar" (out)
   const [outPage, setOutPage] = useState(1);
   const [outTotalPages, setOutTotalPages] = useState(1);
   const [outPageSize, setOutPageSize] = useState(1);
+  const [outCount, setOutCount] = useState(0);
 
   const [movementTarget, setMovementTarget] = useState<MovementTarget | null>(null);
   const [addItemOpen, setAddItemOpen] = useState(false);
@@ -47,13 +51,14 @@ export default function InventoryPage() {
       const res = await API.get(`/source-inventory/`, {
         params: { source, page: inPage },
       });
-      const results = res.data.results ?? res.data;
+      const data: PaginatedResponse<SourceStock> | SourceStock[] = res.data;
+      const results = getResults(data);
       setSourceStocks(results);
 
-      const count = res.data.count ?? results.length ?? 0;
-      const size = res.data.page_size ?? results.length ?? 1;
-      setInPageSize(size);
-      setInTotalPages(Math.max(1, Math.ceil(count / size)));
+      const meta = getPageMeta(data, results.length || 1);
+      setInPageSize(meta.page_size);
+      setInCount(meta.count);
+      setInTotalPages(Math.max(1, Math.ceil(meta.count / meta.page_size)));
     } catch (err) {
       console.log(err);
     } finally {
@@ -67,13 +72,14 @@ export default function InventoryPage() {
       const res = await API.get("/inventory/with-stock/", {
         params: { page: outPage },
       });
-      const results = res.data.results ?? res.data;
+      const data: PaginatedResponse<ItemWithStock> | ItemWithStock[] = res.data;
+      const results = getResults(data);
       setOutItems(results);
 
-      const count = res.data.count ?? results.length ?? 0;
-      const size = res.data.page_size ?? results.length ?? 1;
-      setOutPageSize(size);
-      setOutTotalPages(Math.max(1, Math.ceil(count / size)));
+      const meta = getPageMeta(data, results.length || 1);
+      setOutPageSize(meta.page_size);
+      setOutCount(meta.count);
+      setOutTotalPages(Math.max(1, Math.ceil(meta.count / meta.page_size)));
     } catch (err) {
       console.log(err);
     } finally {
@@ -170,7 +176,6 @@ export default function InventoryPage() {
 
         <div className="overflow-hidden rounded-lg border bg-white">
           {tab === "in" ? (
-            <>
               <Table className="w-full">
                 <TableHeader>
                   <TableRow className="bg-gray-100">
@@ -221,19 +226,7 @@ export default function InventoryPage() {
                   )}
                 </TableBody>
               </Table>
-
-              <div className="flex items-center justify-center gap-4 border-t p-4">
-                <Button variant="outline" disabled={inPage === 1 || loading} onClick={() => setInPage(inPage - 1)}>
-                  Previous
-                </Button>
-                <span className="text-sm text-gray-600">Page {inPage} of {inTotalPages}</span>
-                <Button variant="outline" disabled={inPage === inTotalPages || loading} onClick={() => setInPage(inPage + 1)}>
-                  Next
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
+            ) : (
               <Table className="w-full">
                 <TableHeader>
                   <TableRow className="bg-gray-100">
@@ -284,19 +277,36 @@ export default function InventoryPage() {
                   )}
                 </TableBody>
               </Table>
+            )}
+          </div>
 
-              <div className="flex items-center justify-center gap-4 border-t p-4">
-                <Button variant="outline" disabled={outPage === 1 || loading} onClick={() => setOutPage(outPage - 1)}>
-                  Previous
-                </Button>
-                <span className="text-sm text-gray-600">Page {outPage} of {outTotalPages}</span>
-                <Button variant="outline" disabled={outPage === outTotalPages || loading} onClick={() => setOutPage(outPage + 1)}>
-                  Next
-                </Button>
-              </div>
-            </>
-          )}
-        </div>
+        {tab === "in" ? (
+          <PaginationControls
+            page={inPage}
+            totalPages={inTotalPages}
+            hasPrevious={inPage > 1}
+            hasNext={inPage < inTotalPages}
+            onPrevious={() => setInPage(inPage - 1)}
+            onNext={() => setInPage(inPage + 1)}
+            loading={loading}
+            totalCount={inCount}
+            pageSize={inPageSize}
+            itemLabel="item"
+          />
+        ) : (
+          <PaginationControls
+            page={outPage}
+            totalPages={outTotalPages}
+            hasPrevious={outPage > 1}
+            hasNext={outPage < outTotalPages}
+            onPrevious={() => setOutPage(outPage - 1)}
+            onNext={() => setOutPage(outPage + 1)}
+            loading={loading}
+            totalCount={outCount}
+            pageSize={outPageSize}
+            itemLabel="item"
+          />
+        )}
       </div>
 
       <StockMovementModal

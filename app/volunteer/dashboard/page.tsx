@@ -20,7 +20,6 @@ export default function VolunteerDashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      // TODO: confirm this matches VolunteerDashboardView's registered path
       const res = await API.get("/volunteer-dashboard/");
       setData(res.data);
     } catch {

@@ -5,7 +5,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import AOSInit from "@/components/landing/aos-init"
-import ParticleBackground from "@/components/landing/particle-bg"
+//import ParticleBackground from "@/components/landing/particle-bg"
 import StudentSummary from "@/components/landing/inventory-summary"
 import Image from "next/image"
 import { FaFacebook,FaTiktok, FaYoutube ,FaGlobe} from "react-icons/fa"
@@ -96,7 +96,7 @@ export default function LandingPage() {
   return (
     <>
       <AOSInit />
-        <ParticleBackground />
+        {/* <ParticleBackground /> */}
       {/* ===== HEADER ===== */}
       <header
         className="fixed top-0 z-50 w-full border-b border-white/10 backdrop-blur-xl"

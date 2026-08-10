@@ -20,13 +20,13 @@ export default function PendingRequests({ requests, loading }: { requests: Reque
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Recent Requests</CardTitle>
+        <CardTitle className="text-lg">Permintaan Terkini</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {loading ? (
           Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)
         ) : requests.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No requests yet.</p>
+          <p className="text-sm text-muted-foreground">Tiada permintaan.</p>
         ) : (
           requests.map((r) => (
             <div key={r.id} className="flex justify-between items-center border-b pb-2 text-sm last:border-b-0 last:pb-0">

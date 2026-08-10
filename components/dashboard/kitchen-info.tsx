@@ -16,12 +16,12 @@ type Kitchen = {
 
 function resolveStatus(k: Kitchen) {
   if (k.status === "maintenance")
-    return { label: "Maintenance", classes: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20" };
+    return { label: "Penyelenggaraan", classes: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20" };
   if (k.status === "closed")
-    return { label: "Closed", classes: "bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20" };
+    return { label: "Tutup", classes: "bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20" };
   if (k.status === "active" || k.is_active)
-    return { label: "Active", classes: "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20" };
-  return { label: "Unavailable", classes: "bg-gray-100 text-gray-600 ring-1 ring-inset ring-gray-400/20" };
+    return { label: "Aktif", classes: "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20" };
+  return { label: "Tidak Tersedia", classes: "bg-gray-100 text-gray-600 ring-1 ring-inset ring-gray-400/20" };
 }
 
 export default function KitchenInfoCard() {
@@ -48,7 +48,7 @@ export default function KitchenInfoCard() {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-sm font-semibold">
           <ChefHat className="h-4 w-4 text-gray-400" />
-          Kitchen info
+          Info Dapur
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-1">
@@ -57,7 +57,7 @@ export default function KitchenInfoCard() {
         ) : error ? (
           <p className="text-sm text-red-600">{error}</p>
         ) : kitchens.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No kitchens found.</p>
+          <p className="text-sm text-muted-foreground">Tiada Dapur yang Tersedia</p>
         ) : (
           kitchens.map((k) => {
             const s = resolveStatus(k);

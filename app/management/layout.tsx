@@ -27,8 +27,8 @@ export default function DashboardLayout({
     {
       label: "Pelajar",
       items: [
-        { label: "Pelajar Walk-in", href: "/management/dataanalytic/studentWalkin" },
-        { label: "Tempahan Pelajar", href: "/management/dataanalytic/studentsBooking" },
+        { label: "Pelajar (Walk-in)", href: "/management/dataanalytic/studentWalkin" },
+        { label: "Pelajar (Tempahan)", href: "/management/dataanalytic/studentsBooking" },
         { label: "Penyimpanan Pelajar", href: "/management/storage" },
         { label: "Maklum Balas Pelajar", href: "/management/feedback" },
       ],
@@ -36,7 +36,7 @@ export default function DashboardLayout({
     {
       label: "Dapur",
       items: [
-        { label: "QR Dapur", href: "/management/kitchen" },
+        { label: "Dapur", href: "/management/kitchen" },
         { label: "Sukarelawan Dapur", href: "/management/kitchen/volunteer" },
         { label: "Laporan Sukarelawan", href: "/management/kitchen/volunteer/report" },
         { label: "Jadual Betugas", href: "/management/kitchen/volunteer/schedual" },

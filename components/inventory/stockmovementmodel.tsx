@@ -119,7 +119,7 @@ export default function StockMovementModal({
                   value={kitchenId}
                   onChange={(e) => setKitchenId(e.target.value)}
                 >
-                  <option value="">Select kitchen</option>
+                  <option value="">Pilih dapur</option>
                   {kitchens.map((k) => (
                     <option key={k.id} value={k.id}>
                       {k.code}
@@ -132,7 +132,7 @@ export default function StockMovementModal({
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">
-              Quantity <span className="font-normal text-gray-400">({item.unit})</span>
+              Kuantiti <span className="font-normal text-gray-400">({item.unit})</span>
             </label>
             <input
               type="number"
@@ -205,10 +205,10 @@ export default function StockMovementModal({
 
         <div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-4">
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            Batal
           </Button>
           <Button disabled={!canSubmit || submitting} onClick={handleSubmit}>
-            {submitting ? "Saving..." : isOut ? "Confirm transfer" : "Add stock"}
+            {submitting ? "Menyimpan..." : isOut ? "Sahkan pemindahan" : "Tambah stok"}
           </Button>
         </div>
       </div>

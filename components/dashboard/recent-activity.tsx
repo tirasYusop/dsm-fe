@@ -16,10 +16,10 @@ type Activity = {
 };
 
 const ACTION_ICONS: { key: keyof Activity; label: string; icon: typeof Utensils }[] = [
-  { key: "used_kitchen", label: "used kitchen", icon: ChefHat },
-  { key: "took_rice", label: "took rice", icon: Utensils },
-  { key: "took_dish", label: "took dish", icon: Soup },
-  { key: "took_foodbank", label: "took foodbank", icon: ShoppingBasket },
+  { key: "used_kitchen", label: "Menggunakan Dapur", icon: ChefHat },
+  { key: "took_rice", label: "Mengambil Nasi", icon: Utensils },
+  { key: "took_dish", label: "Mengambil Makanan", icon: Soup },
+  { key: "took_foodbank", label: "Mengambil FoodBank", icon: ShoppingBasket },
 ];
 
 function activeActions(a: Activity) {
@@ -58,7 +58,7 @@ export default function RecentActivity() {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-sm font-semibold">
           <ActivityIcon className="h-4 w-4 text-gray-400" />
-          Recent activity
+          Aktiviti Terkini
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-1">
@@ -67,7 +67,7 @@ export default function RecentActivity() {
         ) : error ? (
           <p className="text-sm text-red-600">{error}</p>
         ) : activities.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No activity recorded yet.</p>
+          <p className="text-sm text-muted-foreground">Tiada aktiviti yang direkodkan.</p>
         ) : (
           activities.map((a) => {
             const actions = activeActions(a);

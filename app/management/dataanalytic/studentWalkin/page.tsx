@@ -7,6 +7,10 @@ import DataTable from "@/components/table";
 import PageHeader from "@/components/ui/page-header";
 import SectionHeading from "@/components/ui/section-heading";
 import RoleGuard from "@/components/auth/roleguard";
+import FilterBar from "@/components/filterBar";
+import ExportButton from "@/components/exportButton";
+import PaginationControls from "@/components/common/PaginationControls";
+import { getResults, getPageMeta, type PaginatedResponse } from "@/lib/pagination";
 import type { Attendance, StudentActivity } from "@/types/attandance";
 
 const COLUMNS = [
@@ -18,22 +22,50 @@ const COLUMNS = [
   { key: "activity", label: "Aktiviti" },
 ];
 
+function activityLabel(activity?: StudentActivity) {
+  if (!activity) return "Not recorded";
+  const parts: string[] = [];
+  if (activity.took_rice) parts.push("Mengambil Nasi");
+  if (activity.took_dish) parts.push("Mengambil Lauk");
+  if (activity.used_kitchen) parts.push("Menggunakan Dapur");
+  if (activity.took_foodbank) {
+    parts.push(`Foodbank: ${activity.foodbank_items.map((f) => `${f.item_name} x${f.quantity}`).join(", ")}`);
+  }
+  return parts.length ? parts.join(" | ") : "Tiada Aktiviti";
+}
+
 export default function StudentWalkinPage() {
   const [records, setRecords] = useState<Attendance[]>([]);
   const [activities, setActivities] = useState<Record<number, StudentActivity>>({});
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    fetchWalkin();
-    fetchActivities();
-  }, []);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [nextPage, setNextPage] = useState<string | null>(null);
+  const [previousPage, setPreviousPage] = useState<string | null>(null);
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
 
-  const fetchWalkin = async () => {
+  const fetchWalkin = async (currentPage: number) => {
+    setLoading(true);
     try {
-      const res = await API.get("/attendance/management/walk-in/");
-      setRecords(res.data);
+      const res = await API.get<PaginatedResponse<Attendance> | Attendance[]>(
+        "/attendance/management/walk-in/",
+        { params: { page: currentPage } }
+      );
+      const results = getResults(res.data);
+      const meta = getPageMeta(res.data, pageSize);
+
+      setRecords(results);
+      setTotalRecords(meta.count);
+      setPageSize(meta.page_size);
+      setNextPage(meta.next);
+      setPreviousPage(meta.previous);
     } catch (error) {
       console.error("Failed load walk in", error);
+      setRecords([]);
+      setTotalRecords(0);
     } finally {
       setLoading(false);
     }
@@ -41,9 +73,9 @@ export default function StudentWalkinPage() {
 
   const fetchActivities = async () => {
     try {
-      const res = await API.get("/attendance/activity/list/");
+      const res = await API.get<StudentActivity[]>("/attendance/activity/list/");
       const map: Record<number, StudentActivity> = {};
-      res.data.forEach((activity: StudentActivity) => {
+      res.data.forEach((activity) => {
         map[activity.attendance] = activity;
       });
       setActivities(map);
@@ -52,7 +84,24 @@ export default function StudentWalkinPage() {
     }
   };
 
-  const groupedKitchen = records.reduce((acc: Record<string, Attendance[]>, item) => {
+  useEffect(() => {
+    fetchActivities();
+  }, []);
+
+  useEffect(() => {
+    fetchWalkin(page);
+  }, [page]);
+
+  // Search filters within the current page only — see note below.
+  const filteredRecords = search.trim()
+    ? records.filter(
+        (r) =>
+          r.student.name.toLowerCase().includes(search.toLowerCase()) ||
+          r.student.student_id.toLowerCase().includes(search.toLowerCase())
+      )
+    : records;
+
+  const groupedKitchen = filteredRecords.reduce((acc: Record<string, Attendance[]>, item) => {
     const kitchenId = item.kitchen?.id?.toString() ?? "unknown";
     if (!acc[kitchenId]) acc[kitchenId] = [];
     acc[kitchenId].push(item);
@@ -62,7 +111,31 @@ export default function StudentWalkinPage() {
   return (
     <RoleGuard allowedRoles={["management"]}>
       <div className="space-y-6">
-        <PageHeader title="Kehadiran Pelajar (Walk In)" />
+        <PageHeader
+          title="Kehadiran Pelajar (Walk In)"
+          action={
+            <ExportButton
+              title="Kehadiran Pelajar (Walk In)"
+              filename="student-walkin-attendance"
+              columns={["Bil", "ID Pelajar", "Nama", "Fakulti", "Check In", "Aktiviti"]}
+              rows={filteredRecords.map((item, i) => [
+                (page - 1) * pageSize + i + 1,
+                item.student.student_id,
+                item.student.name,
+                item.student.faculty,
+                new Date(item.check_in_time).toLocaleString(),
+                activityLabel(activities[item.id]),
+              ])}
+              subtitle="Eksport halaman semasa sahaja"
+            />
+          }
+        />
+
+        <FilterBar
+          search={{ value: search, onChange: setSearch, placeholder: "Cari nama / ID pelajar..." }}
+          hasActiveFilters={!!search}
+          onClear={() => setSearch("")}
+        />
 
         {Object.keys(groupedKitchen).map((kitchenId) => {
           const kitchenRecords = groupedKitchen[kitchenId];
@@ -112,6 +185,21 @@ export default function StudentWalkinPage() {
             </div>
           );
         })}
+
+        {totalRecords > 0 && (
+          <PaginationControls
+            page={page}
+            totalPages={totalPages}
+            hasNext={!!nextPage}
+            hasPrevious={!!previousPage}
+            onNext={() => setPage((p) => p + 1)}
+            onPrevious={() => setPage((p) => p - 1)}
+            loading={loading}
+            totalCount={totalRecords}
+            pageSize={pageSize}
+            itemLabel="rekod"
+          />
+        )}
       </div>
     </RoleGuard>
   );

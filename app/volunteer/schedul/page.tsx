@@ -57,9 +57,9 @@ export default function MySchedulePage() {
 
   return (
     <RoleGuard allowedRoles={["volunteer"]}>
-      <div className="mx-auto space-y-5 p-3">
+      <div className="mx-auto space-y-6">
         <div>
-          <h1 className="text-lg font-semibold text-gray-900 sm:text-xl">Jadual sukarelawan</h1>
+          <h1 className="text-lg font-bold text-gray-900 sm:text-2xl">Jadual sukarelawan</h1>
           <p className="text-sm text-gray-500">Jadual mingguan untuk dapur anda.</p>
         </div>
 

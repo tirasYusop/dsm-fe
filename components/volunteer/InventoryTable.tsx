@@ -41,17 +41,17 @@ const STATUS_STYLES: Record<
   { label: string; badge: string; dot: string }
 > = {
   available: {
-    label: "Available",
+    label: "Tersedia",
     badge: "bg-green-50 text-green-700 ring-1 ring-inset ring-green-200",
     dot: "bg-green-500",
   },
   low: {
-    label: "Low stock",
+    label: "Stok Rendah",
     badge: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200",
     dot: "bg-amber-500",
   },
   out: {
-    label: "Out of stock",
+    label: "Habis",
     badge: "bg-red-50 text-red-700 ring-1 ring-inset ring-red-200",
     dot: "bg-red-500",
   },
@@ -59,9 +59,9 @@ const STATUS_STYLES: Record<
 
 const STATUS_FILTERS = [
   { value: "all", label: "All" },
-  { value: "available", label: "Available" },
-  { value: "low", label: "Low stock" },
-  { value: "out", label: "Out of stock" },
+  { value: "available", label: "Tersedia" },
+  { value: "low", label: "Stok Rendah" },
+  { value: "out", label: "Habis" },
 ];
 
 const USAGE_UNITS = [
@@ -137,12 +137,12 @@ export default function InventoryTable({
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50 hover:bg-gray-50">
-              <TableHead className="w-10">No</TableHead>
+              <TableHead className="w-10">Bil.</TableHead>
               <TableHead>Item</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Log usage</TableHead>
-              <TableHead>Stock (QTY)</TableHead>
-              <TableHead className="text-center">Action</TableHead>
+              <TableHead>Log Penggunaan</TableHead>
+              <TableHead>Stok (QTY)</TableHead>
+              <TableHead className="text-center">Tindakan</TableHead>
             </TableRow>
           </TableHeader>
 
@@ -160,7 +160,7 @@ export default function InventoryTable({
             ) : filteredInventory.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="py-6 text-center text-sm text-gray-400">
-                  No items match this filter.
+                  Tiada item dijumpai.
                 </TableCell>
               </TableRow>
             ) : (
@@ -189,7 +189,7 @@ export default function InventoryTable({
                     {/* Usage: just a log, not tied to stock at all */}
                     <TableCell>
                       {item.status === "out" ? (
-                        <span className="text-xs text-gray-400 italic">Unavailable</span>
+                        <span className="text-xs text-gray-400 italic">Tidak Tersedia</span>
                       ) : (
                         <div className="flex items-center gap-1.5">
                           <input
@@ -235,7 +235,7 @@ export default function InventoryTable({
                               : "bg-gray-900 hover:bg-gray-700"
                           }`}
                         >
-                          Use
+                          Gunakan
                         </button>
 
                         <button
@@ -257,7 +257,7 @@ export default function InventoryTable({
                         <div className="mt-3 w-56 justify-self-center rounded-lg border border-gray-200 bg-gray-50 p-3">
                           <div>
                             <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                              Quantity
+                              Kuantiti
                             </label>
                             <input
                               type="number"
@@ -267,7 +267,7 @@ export default function InventoryTable({
                               onChange={(e) => setStockQuantity(e.target.value)}
                             />
                             <p className="mt-1 text-[11px] text-gray-400">
-                              Status updates automatically based on quantity.
+                              Status akan dikemaskini secara automatik berdasarkan kuantiti.
                             </p>
                           </div>
 
@@ -283,7 +283,7 @@ export default function InventoryTable({
                             }}
                             className="w-full mt-3 rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-green-500"
                           >
-                            Save changes
+                            Simpan Perubahan
                           </button>
                         </div>
                       )}
@@ -322,7 +322,7 @@ export default function InventoryTable({
               </div>
               {/* Usage */}
               <div className="mt-4">
-                <label className="text-xs font-medium text-gray-500">Log Usage</label>
+                <label className="text-xs font-medium text-gray-500">Log Penggunaan</label>
                 <div className="mt-2 flex gap-2">
                   <input
                     type="number"
@@ -370,7 +370,7 @@ export default function InventoryTable({
                   disabled={item.status==="out"}
                   className=" h-10 rounded-lg bg-gray-900 text-sm font-medium text-white disabled:bg-gray-300 "
                 >
-                  Use
+                  Gunakan
                 </button>
 
                 <button
@@ -393,7 +393,7 @@ export default function InventoryTable({
               {/* Update Form */}
               {isEditing && (
                 <div className=" mt-4 rounded-lg border bg-gray-50 p-3 ">
-                  <label className="text-xs font-medium uppercase text-gray-400"> Update Quantity</label>
+                  <label className="text-xs font-medium uppercase text-gray-400">Kemaskini Kuantiti</label>
                   <input
                     type="number"
                     min="0"
@@ -403,7 +403,7 @@ export default function InventoryTable({
                     }
                     className=" mt-2 h-10 w-full rounded-lg border px-3 text-sm"
                   />
-                  <p className="mt-2 text-xs text-gray-400">Status will update automatically based on quantity.</p>
+                  <p className="mt-2 text-xs text-gray-400">Status akan dikemaskini secara automatik berdasarkan kuantiti.</p>
                   <button
                     onClick={()=>{
                       const finalQty = Number(stockQuantity);

@@ -10,13 +10,10 @@ import type {InventoryItem,UsageRecord,UsageEntry} from "@/types/kitchen"
 export default function InventoryPage() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [usage, setUsage] = useState<{ [key: number]: UsageEntry }>({});
-  const [records, setRecords] = useState<UsageRecord[]>([]);
   const [loadingInventory, setLoadingInventory] = useState(false);
-  const [loadingHistory, setLoadingHistory] = useState(false);
 
   useEffect(() => {
     fetchInventory();
-    fetchHistory();
   }, []);
 
   const fetchInventory = async () => {
@@ -28,18 +25,6 @@ export default function InventoryPage() {
       console.error(err);
     } finally {
       setLoadingInventory(false);
-    }
-  };
-
-  const fetchHistory = async () => {
-    setLoadingHistory(true);
-    try {
-      const res = await API.get("/usage-logs/");
-      setRecords(res.data.results ?? res.data);
-    } catch (err: any) {
-      console.error(err?.response?.status, err?.response?.data);
-    } finally {
-      setLoadingHistory(false);
     }
   };
 
@@ -75,7 +60,6 @@ export default function InventoryPage() {
         usage_unit: unit,
         reason: "Volunteer usage",
       });
-      await fetchHistory();
       setUsage((prev) => ({
         ...prev,
         [id]: { quantity: 0, unit },
@@ -87,8 +71,6 @@ export default function InventoryPage() {
     }
   };
 
-  // Status is no longer chosen by the volunteer -- the backend derives it
-  // from the quantity, so only `quantity` is sent here now.
   const updateStockStatus = async (id: number, quantity: number) => {
     try {
       await API.post("/kitchen-stock-status/set/", {
@@ -116,11 +98,6 @@ export default function InventoryPage() {
           onUpdateStock={updateStockStatus}
           loading={loadingInventory}
         />
-
-        <div className="mt-10">
-          <h2 className="text-base sm:text-xl font-semibold mb-4"> Usage History</h2>
-          <UsageHistoryTable records={records} loading={loadingHistory} />
-        </div>
       </div>
     </RoleGuard>
   );

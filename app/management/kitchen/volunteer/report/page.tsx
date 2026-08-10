@@ -5,11 +5,11 @@ import API from "@/lib/api1";
 import RoleGuard from "@/components/auth/roleguard";
 import { Table, TableHeader, TableHead, TableRow, TableCell, TableBody } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Clock, Users, Timer, Download } from "lucide-react";
+import { Clock, Users, Timer } from "lucide-react";
 import { Shift, Kitchen } from "@/types/kitchen";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import PageHeader from "@/components/ui/page-header";
+import FilterBar from "@/components/filterBar";
+import ExportButton from "@/components/exportButton";
 
 function formatDuration(minutes: number) {
   const h = Math.floor(minutes / 60);
@@ -18,19 +18,14 @@ function formatDuration(minutes: number) {
 }
 
 function formatDateTime(iso: string) {
-  return new Date(iso).toLocaleString([], {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  return new Date(iso).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
 export default function VolunteerReportPage() {
   const [kitchens, setKitchens] = useState<Kitchen[]>([]);
   const [selectedKitchen, setSelectedKitchen] = useState<string>("");
   const [shifts, setShifts] = useState<Shift[]>([]);
-  const [selectedVolunteer, setSelectedVolunteer] = useState<string>(""); // "" = all
+  const [selectedVolunteer, setSelectedVolunteer] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
   const fetchKitchens = async () => {
@@ -69,62 +64,50 @@ export default function VolunteerReportPage() {
     return Array.from(names).sort();
   }, [shifts]);
 
-  const filteredShifts = selectedVolunteer
-    ? shifts.filter((s) => s.volunteer_name === selectedVolunteer)
-    : shifts;
+  const filteredShifts = selectedVolunteer ? shifts.filter((s) => s.volunteer_name === selectedVolunteer) : shifts;
 
   const totalMinutes = filteredShifts.reduce((sum, s) => sum + s.duration_minutes, 0);
   const activeCount = filteredShifts.filter((s) => s.is_active).length;
   const uniqueVolunteers = new Set(filteredShifts.map((s) => s.volunteer)).size;
 
-  const handleExportPDF = () => {
-    const doc = new jsPDF();
-
-    const kitchenLabel = selectedKitchen
-      ? kitchens.find((k) => String(k.id) === selectedKitchen)?.name ?? "All kitchens"
-      : "All kitchens";
-    const volunteerLabel = selectedVolunteer || "All volunteers";
-
-    doc.setFontSize(14);
-    doc.text("Volunteer time report", 14, 15);
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Kitchen: ${kitchenLabel}`, 14, 22);
-    doc.text(`Volunteer: ${volunteerLabel}`, 14, 27);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 32);
-    doc.text(`Total hours: ${formatDuration(totalMinutes)}`, 14, 37);
-
-    autoTable(doc, {
-      startY: 42,
-      head: [["No.", "Volunteer", "Kitchen", "Clock in", "Clock out", "Duration", "Notes", "Status"]],
-      body: filteredShifts.map((shift, index) => [
-        index + 1,
-        shift.volunteer_name,
-        shift.kitchen_name,
-        formatDateTime(shift.clock_in),
-        shift.clock_out ? formatDateTime(shift.clock_out) : "—",
-        formatDuration(shift.duration_minutes),
-        shift.notes || "—",
-        shift.is_active ? "Active" : "Completed",
-      ]),
-      styles: { fontSize: 8 },
-      headStyles: { fillColor: [31, 41, 55] }, 
-      columnStyles: { 6: { cellWidth: 40 } }, 
-    });
-
-    const filenameParts = ["volunteer-report"];
-    if (selectedVolunteer) filenameParts.push(selectedVolunteer.replace(/\s+/g, "-").toLowerCase());
-    filenameParts.push(new Date().toISOString().slice(0, 10));
-
-    doc.save(`${filenameParts.join("_")}.pdf`);
+  const hasActiveFilters = !!selectedKitchen || !!selectedVolunteer;
+  const clearFilters = () => {
+    setSelectedKitchen("");
+    setSelectedVolunteer("");
   };
+
+  const kitchenLabel = selectedKitchen
+    ? kitchens.find((k) => String(k.id) === selectedKitchen)?.name ?? "All kitchens"
+    : "All kitchens";
+  const volunteerLabel = selectedVolunteer || "All volunteers";
+
+  const exportRows = filteredShifts.map((shift, index) => [
+    index + 1,
+    shift.volunteer_name,
+    shift.kitchen_name,
+    formatDateTime(shift.clock_in),
+    shift.clock_out ? formatDateTime(shift.clock_out) : "—",
+    formatDuration(shift.duration_minutes),
+    shift.notes || "—",
+    shift.is_active ? "Active" : "Completed",
+  ]);
 
   return (
     <RoleGuard allowedRoles={["management"]}>
       <div className="mx-auto space-y-6">
-        <div>
-          <PageHeader title="Laporan Sukarelawan" subtitle="Rekod daftar masuk/daftar keluar sukarelawan anda." />
-        </div>
+        <PageHeader
+          title="Laporan Sukarelawan"
+          subtitle="Rekod daftar masuk/daftar keluar sukarelawan anda."
+          action={
+            <ExportButton
+              title="Volunteer time report"
+              filename="volunteer-report"
+              columns={["No.", "Volunteer", "Kitchen", "Clock in", "Clock out", "Duration", "Notes", "Status"]}
+              rows={exportRows}
+              subtitle={`Kitchen: ${kitchenLabel} · Volunteer: ${volunteerLabel} · Total: ${formatDuration(totalMinutes)}`}
+            />
+          }
+        />
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Card className="border-gray-100 shadow-sm">
@@ -166,45 +149,24 @@ export default function VolunteerReportPage() {
           </Card>
         </div>
 
-        <div className="flex flex-wrap items-end gap-4">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Dapur</label>
-            <select
-              className="w-56 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
-              value={selectedKitchen}
-              onChange={(e) => setSelectedKitchen(e.target.value)}
-            >
-              <option value="">Semua Dapur</option>
-              {kitchens.map((k) => (
-                <option key={k.id} value={k.id}>
-                  {k.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Sukarelawan</label>
-            <select
-              className="w-56 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
-              value={selectedVolunteer}
-              onChange={(e) => setSelectedVolunteer(e.target.value)}
-            >
-              <option value="">Semua Sukarelawan</option>
-              {volunteerOptions.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <button
-            onClick={handleExportPDF}
-            disabled={filteredShifts.length === 0}
-            className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Download className="h-4 w-4" />Eksport PDF
-          </button>
-        </div>
+        <FilterBar
+          selects={[
+            {
+              value: selectedKitchen,
+              onChange: setSelectedKitchen,
+              options: kitchens.map((k) => ({ value: String(k.id), label: k.name })),
+              allLabel: "Semua Dapur",
+            },
+            {
+              value: selectedVolunteer,
+              onChange: setSelectedVolunteer,
+              options: volunteerOptions.map((name) => ({ value: name, label: name })),
+              allLabel: "Semua Sukarelawan",
+            },
+          ]}
+          hasActiveFilters={hasActiveFilters}
+          onClear={clearFilters}
+        />
 
         <div className="overflow-hidden rounded-lg border bg-white">
           <Table className="w-full">
@@ -222,9 +184,7 @@ export default function VolunteerReportPage() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow>
-                  <TableCell colSpan={8}>Loading...</TableCell>
-                </TableRow>
+                <TableRow><TableCell colSpan={8}>Loading...</TableCell></TableRow>
               ) : filteredShifts.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="p-6 text-center text-gray-500">
@@ -238,17 +198,11 @@ export default function VolunteerReportPage() {
                     <TableCell className="p-2 font-medium">{shift.volunteer_name}</TableCell>
                     <TableCell className="p-2">{shift.kitchen_name}</TableCell>
                     <TableCell className="p-2">{formatDateTime(shift.clock_in)}</TableCell>
-                    <TableCell className="p-2">
-                      {shift.clock_out ? formatDateTime(shift.clock_out) : "—"}
-                    </TableCell>
+                    <TableCell className="p-2">{shift.clock_out ? formatDateTime(shift.clock_out) : "—"}</TableCell>
                     <TableCell className="p-2">{formatDuration(shift.duration_minutes)}</TableCell>
                     <TableCell className="p-2 text-gray-600">{shift.notes || "—"}</TableCell>
                     <TableCell className="p-2">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                          shift.is_active ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"
-                        }`}
-                      >
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${shift.is_active ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
                         {shift.is_active ? "Active" : "Completed"}
                       </span>
                     </TableCell>

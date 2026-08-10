@@ -7,10 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableHead, TableRow, TableBody, TableCell } from "@/components/ui/table";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { Download } from "lucide-react";
-import type {OverviewAsset,AssetOption} from "@/types/asset"
+import { Download, ChevronRight } from "lucide-react";
+import type { OverviewAsset, AssetOption } from "@/types/asset";
 import AssetDetailPanel from "./assetpanel";
-import DataTable from "../table";
 
 const STATUS_STYLES: Record<string, string> = {
   active: "bg-green-100 text-green-700",
@@ -107,13 +106,13 @@ export default function AssetOverviewTab() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-end gap-4 border rounded-lg p-4 bg-gray-50">
-        <div>
+      <div className="flex flex-col gap-3 border rounded-lg p-4 bg-gray-50 sm:flex-row sm:flex-wrap sm:items-end">
+        <div className="flex-1 min-w-[160px]">
           <label className="text-sm font-medium block mb-1">Pilih Asset</label>
           <select
             value={selectedAsset}
             onChange={(e) => setSelectedAsset(e.target.value)}
-            className="border rounded px-3 py-2 min-w-[200px]"
+            className="w-full border rounded px-3 py-2"
           >
             <option value="">Semua Asset</option>
             {assetOptions.map((a) => (
@@ -122,18 +121,18 @@ export default function AssetOverviewTab() {
           </select>
         </div>
 
-        <div>
+        <div className="flex-1 min-w-[100px] sm:flex-none">
           <label className="text-sm font-medium block mb-1">Select Year</label>
           <input
             type="number"
             value={selectedYear}
             onChange={(e) => setSelectedYear(e.target.value)}
-            className="border rounded px-3 py-2 w-28"
+            className="w-full border rounded px-3 py-2 sm:w-28"
             placeholder="2026"
           />
         </div>
 
-        <Button onClick={generatePdf}>
+        <Button onClick={generatePdf} className="w-full sm:w-auto">
           <Download className="h-4 w-4 mr-1.5" />
           Cetak PDF
         </Button>
@@ -144,7 +143,72 @@ export default function AssetOverviewTab() {
           Senarai Status Aset Semasa
         </h2>
 
-        <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+        {/* Mobile: stacked cards */}
+        <div className="space-y-3 md:hidden">
+          {loading ? (
+            <div className="rounded-xl border border-gray-200 bg-white py-6 text-center text-sm text-gray-500">
+              Sedang memuatkan data aset...
+            </div>
+          ) : overview.length === 0 ? (
+            <div className="rounded-xl border border-gray-200 bg-white py-6 text-center text-sm text-gray-500">
+              Tiada aset yang telah didaftarkan lagi.
+            </div>
+          ) : (
+            overview.map((asset) => {
+              const maintenanceEntries = asset.transactions.filter((t) => t.type === "maintenance");
+              const disposalEntries = asset.transactions.filter((t) => t.type === "disposal");
+              const remarks = asset.transactions.filter((t) => t.notes);
+
+              return (
+                <button
+                  key={asset.id}
+                  type="button"
+                  onClick={() => setSelectedId(asset.id)}
+                  className="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 text-left active:bg-gray-50"
+                >
+                  {asset.image ? (
+                    <img
+                      src={asset.image}
+                      alt={asset.name_brand}
+                      className="h-14 w-14 shrink-0 rounded-lg border object-cover"
+                    />
+                  ) : (
+                    <div className="h-14 w-14 shrink-0 rounded-lg border bg-gray-50" />
+                  )}
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-sm font-semibold text-gray-900">
+                        #{asset.id} - {asset.name_brand}
+                      </p>
+                      <Badge className={`shrink-0 ${STATUS_STYLES[asset.status] ?? "bg-gray-100 text-gray-700"}`}>
+                        {asset.status_display}
+                      </Badge>
+                    </div>
+                    <p className="mt-0.5 text-xs text-gray-500">
+                      {asset.original_location ?? "-"} · {asset.quantity} unit ({asset.available_quantity} tersedia)
+                    </p>
+                    <p className="mt-0.5 text-xs text-gray-400">
+                      {new Date(asset.purchase_date).toLocaleDateString("en-MY")}
+                      {maintenanceEntries.length > 0 && ` · ${maintenanceEntries.length} penyelenggaraan`}
+                      {disposalEntries.length > 0 && ` · ${disposalEntries.length} pelupusan`}
+                    </p>
+                    {remarks.length > 0 && (
+                      <p className="mt-1 truncate text-xs text-gray-400">
+                        {remarks[remarks.length - 1].notes}
+                      </p>
+                    )}
+                  </div>
+
+                  <ChevronRight className="h-4 w-4 shrink-0 text-gray-300" />
+                </button>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop: table */}
+        <div className="hidden overflow-x-auto rounded-xl border border-gray-200 bg-white md:block">
           <Table>
             <TableHeader>
               <TableRow className="bg-gray-50">
@@ -180,27 +244,44 @@ export default function AssetOverviewTab() {
                   const remarks = asset.transactions.filter((t) => t.notes);
 
                   return (
-                    <DataTable
-                      columns={[
-                        { key: "img", label: "Gambar" },
-                        { key: "id", label: "ID" },
-                        { key: "name", label: "Nama Aset" },
-                        { key: "date", label: "Tarikh Pembelian" },
-                        { key: "kolej", label: "Kolej" },
-                        { key: "qty", label: "Kuantiti" },
-                        { key: "status", label: "Statu Semasa" },
-                        { key: "maint", label: "Penyelenggaraan" },
-                        { key: "disposal", label: "Pelupusan" },
-                        { key: "remark", label: "Remark" },
-                      ]}
-                      data={overview}
-                      loading={loading}
-                      emptyMessage="Tiada aset yang telah didaftarkan lagi."
-                      renderRow={(asset) => {
-                        // ...exact same row-building logic you already have (maintenanceEntries, disposalEntries, remarks)
-                        // just return the same <TableRow key={asset.id} onClick={...} className="cursor-pointer hover:bg-gray-50">...</TableRow>
-                      }}
-                    />
+                    <TableRow
+                      key={asset.id}
+                      onClick={() => setSelectedId(asset.id)}
+                      className="cursor-pointer hover:bg-gray-50"
+                    >
+                      <TableCell>
+                        {asset.image ? (
+                          <img
+                            src={asset.image}
+                            alt={asset.name_brand}
+                            className="h-10 w-10 rounded border object-cover"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded border bg-gray-50" />
+                        )}
+                      </TableCell>
+                      <TableCell>#{asset.id}</TableCell>
+                      <TableCell className="font-medium">{asset.name_brand}</TableCell>
+                      <TableCell>{new Date(asset.purchase_date).toLocaleDateString("en-MY")}</TableCell>
+                      <TableCell>{asset.original_location ?? "-"}</TableCell>
+                      <TableCell>
+                        {asset.quantity} ({asset.available_quantity} tersedia)
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={STATUS_STYLES[asset.status] ?? "bg-gray-100 text-gray-700"}>
+                          {asset.status_display}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {maintenanceEntries.length > 0 ? `${maintenanceEntries.length} rekod` : "-"}
+                      </TableCell>
+                      <TableCell>
+                        {disposalEntries.length > 0 ? `${disposalEntries.length} rekod` : "-"}
+                      </TableCell>
+                      <TableCell className="max-w-[160px] truncate">
+                        {remarks.length > 0 ? remarks[remarks.length - 1].notes : "-"}
+                      </TableCell>
+                    </TableRow>
                   );
                 })
               )}

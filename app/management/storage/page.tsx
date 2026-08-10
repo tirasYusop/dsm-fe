@@ -7,6 +7,10 @@ import PageHeader from "@/components/ui/page-header";
 import DataTable from "@/components/table";
 import StorageStatusBadge from "@/components/inventory/storageStatusBadge";
 import { TableRow, TableCell } from "@/components/ui/table";
+import FilterBar from "@/components/filterBar";
+import ExportButton from "@/components/exportButton";
+import PaginationControls from "@/components/common/PaginationControls";
+import { getResults, getPageMeta, type PaginatedResponse } from "@/lib/pagination";
 import type { Kitchen, StorageLog } from "@/types/kitchen";
 
 const COLUMNS = [
@@ -27,27 +31,49 @@ export default function ManagementStudentStoragePage() {
   const [studentQuery, setStudentQuery] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalLogs, setTotalLogs] = useState(0);
+  const [nextPage, setNextPage] = useState<string | null>(null);
+  const [previousPage, setPreviousPage] = useState<string | null>(null);
+  const totalPages = Math.max(1, Math.ceil(totalLogs / pageSize));
+
   const fetchKitchens = async () => {
     try {
-      const res = await API.get("/kitchens/");
-      setKitchens(res.data.results ?? res.data);
+      const res = await API.get<PaginatedResponse<Kitchen> | Kitchen[]>("/kitchens/");
+      setKitchens(getResults(res.data));
     } catch (err) {
       console.log(err);
+      setKitchens([]);
     }
   };
 
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      const query = selectedKitchen ? `?kitchen=${selectedKitchen}` : "";
+      const params: Record<string, string | number> = { page };
+      if (selectedKitchen) params.kitchen = selectedKitchen;
+
       const [logsRes, alertsRes] = await Promise.all([
-        API.get(`/student-storage/${query}`),
-        API.get(`/student-storage/alerts/${query}`),
+        API.get<PaginatedResponse<StorageLog> | StorageLog[]>("/student-storage/", { params }),
+        API.get<StorageLog[]>("/student-storage/alerts/", {
+          params: selectedKitchen ? { kitchen: selectedKitchen } : {},
+        }),
       ]);
-      setLogs(logsRes.data.results ?? logsRes.data);
-      setAlerts(alertsRes.data.results ?? alertsRes.data);
+
+      const results = getResults(logsRes.data);
+      const meta = getPageMeta(logsRes.data, pageSize);
+
+      setLogs(results);
+      setTotalLogs(meta.count);
+      setPageSize(meta.page_size);
+      setNextPage(meta.next);
+      setPreviousPage(meta.previous);
+      setAlerts(alertsRes.data ?? []);
     } catch (err) {
       console.log(err);
+      setLogs([]);
+      setTotalLogs(0);
     } finally {
       setLoading(false);
     }
@@ -58,9 +84,14 @@ export default function ManagementStudentStoragePage() {
   }, []);
 
   useEffect(() => {
-    fetchLogs();
+    setPage(1);
   }, [selectedKitchen]);
 
+  useEffect(() => {
+    fetchLogs();
+  }, [selectedKitchen, page]);
+
+  // Search filters within the current page only — see note below.
   const filteredLogs = studentQuery.trim()
     ? logs.filter(
         (log) =>
@@ -69,12 +100,34 @@ export default function ManagementStudentStoragePage() {
       )
     : logs;
 
+  const hasActiveFilters = !!selectedKitchen || !!studentQuery.trim();
+  const clearFilters = () => {
+    setSelectedKitchen("");
+    setStudentQuery("");
+  };
+
   return (
     <RoleGuard allowedRoles={["management"]}>
       <div className="space-y-6">
         <PageHeader
           title="Ruang Simpanan Item Pelajar"
           subtitle="Pelajar telah merekodkan kemasukan bahan mentah ke dalam stor dapur. Item yang telah disimpan melebihi 3 hari ditandakan."
+          action={
+            <ExportButton
+              title="Ruang Simpanan Item Pelajar"
+              filename="student-storage"
+              columns={["Bil", "Item", "Pelajar", "Dapur", "Tarikh Disimpan", "Had"]}
+              rows={filteredLogs.map((log, i) => [
+                (page - 1) * pageSize + i + 1,
+                log.item_name,
+                log.student_name,
+                log.kitchen_name,
+                log.date_stored,
+                log.expiry_date,
+              ])}
+              subtitle="Eksport halaman semasa sahaja"
+            />
+          }
         />
 
         {alerts.length > 0 && (
@@ -92,31 +145,19 @@ export default function ManagementStudentStoragePage() {
           </div>
         )}
 
-        <div className="flex flex-wrap items-end gap-4">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Tapis mengikut dapur</label>
-            <select
-              className="w-56 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
-              value={selectedKitchen}
-              onChange={(e) => setSelectedKitchen(e.target.value)}
-            >
-              <option value="">All kitchens</option>
-              {kitchens.map((k) => (
-                <option key={k.id} value={k.id}>{k.code}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Cari pelajar</label>
-            <input
-              className="w-56 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
-              placeholder="Name or email"
-              value={studentQuery}
-              onChange={(e) => setStudentQuery(e.target.value)}
-            />
-          </div>
-        </div>
+        <FilterBar
+          search={{ value: studentQuery, onChange: setStudentQuery, placeholder: "Name or email" }}
+          selects={[
+            {
+              value: selectedKitchen,
+              onChange: setSelectedKitchen,
+              options: kitchens.map((k) => ({ value: String(k.id), label: k.code })),
+              allLabel: "All kitchens",
+            },
+          ]}
+          hasActiveFilters={hasActiveFilters}
+          onClear={clearFilters}
+        />
 
         <DataTable
           columns={COLUMNS}
@@ -125,7 +166,7 @@ export default function ManagementStudentStoragePage() {
           emptyMessage="Tiada log simpanan lagi."
           renderRow={(log, index) => (
             <TableRow key={log.id} className="border-t">
-              <TableCell className="p-2">{index + 1}</TableCell>
+              <TableCell className="p-2">{(page - 1) * pageSize + index + 1}</TableCell>
               <TableCell className="p-2">{log.item_name}</TableCell>
               <TableCell className="p-2">
                 <p className="font-medium text-gray-900">{log.student_name}</p>
@@ -134,10 +175,27 @@ export default function ManagementStudentStoragePage() {
               <TableCell className="p-2">{log.kitchen_name}</TableCell>
               <TableCell className="p-2">{log.date_stored}</TableCell>
               <TableCell className="p-2">{log.expiry_date}</TableCell>
-              <TableCell className="p-2"><StorageStatusBadge log={log} /></TableCell>
+              <TableCell className="p-2">
+                <StorageStatusBadge log={log} />
+              </TableCell>
             </TableRow>
           )}
         />
+
+        {totalLogs > 0 && (
+          <PaginationControls
+            page={page}
+            totalPages={totalPages}
+            hasNext={!!nextPage}
+            hasPrevious={!!previousPage}
+            onNext={() => setPage((p) => p + 1)}
+            onPrevious={() => setPage((p) => p - 1)}
+            loading={loading}
+            totalCount={totalLogs}
+            pageSize={pageSize}
+            itemLabel="logs"
+          />
+        )}
       </div>
     </RoleGuard>
   );
