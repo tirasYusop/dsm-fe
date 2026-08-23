@@ -173,7 +173,7 @@ export default function BookingPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-3 sm:space-y-5 sm:p-4">
       <div>
-        <h1 className="text-lg font-semibold text-gray-900 sm:text-xl">Buku Dapur Siswa</h1>
+        <h1 className="text-lg font-semibold text-gray-900 sm:text-xl">Tempah Slot Dapur Siswa</h1>
         <p className="text-sm text-gray-500">Pilih dapur, tarikh, dan slot masa untuk membuat tempahan.</p>
       </div>
 

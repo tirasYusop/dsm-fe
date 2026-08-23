@@ -305,8 +305,8 @@ export default function KitchenPage() {
                   <Input name="password" type="password" placeholder="Password" value={form.password} onChange={handleChange} required />
                 </div>
               </>
-            ) : (
-              <div className="border-t pt-4 space-y-4">
+            ) : (<div>
+              {/*<div className="border-t pt-4 space-y-4">
                 <p className="text-xs text-muted-foreground">
                   Leave blank to keep the current username/password unchanged.
                 </p>
@@ -318,7 +318,9 @@ export default function KitchenPage() {
                   <Label>New password</Label>
                   <Input name="password" type="password" placeholder="Leave blank to keep current" value={form.password} onChange={handleChange} />
                 </div>
-              </div>
+              </div>  */}
+                  </div>
+              
             )}
 
             {formError && <p className="text-red-500 text-sm">{formError}</p>}
@@ -334,7 +336,7 @@ export default function KitchenPage() {
       <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Deactivate "{deleteTarget?.name}"?</DialogTitle>
+            <DialogTitle>Delete "{deleteTarget?.name}"?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
             This kitchen will be hidden from the active list and its login disabled.

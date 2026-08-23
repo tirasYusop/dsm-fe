@@ -25,6 +25,7 @@ export interface SourceStock {
   id: number;
   item: number;
   item_name: string;
+  display_name:string;
   source: string;
   total_received: number;
   total_amount: number;
@@ -43,6 +44,7 @@ export interface KitchenStock {
 export interface ItemWithStock {
   id: number;
   name: string;
+  display_name: string;
   unit: string;
   management_stock: number;
   kitchens: KitchenStock[];

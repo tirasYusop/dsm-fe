@@ -1,7 +1,12 @@
 "use client";
 
 import { Button } from "../ui/button";
-import { Card, CardContent, CardHeader } from "../ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
 import type { Movement } from "@/types/movement";
 
 type Props = {
@@ -9,44 +14,50 @@ type Props = {
   onClose: () => void;
 };
 
-export default function MovementDetailPanel({
-  item,
-  onClose,
-}: Props) {
-
+export default function MovementDetailPanel({ item, onClose }: Props) {
   if (!item) return null;
 
+  const isOut = item.movement_type === "out";
 
   return (
-    <Card>
-      <div className="p-4">
-        <CardHeader className="text-xl font-bold mb-4">
-         Butiran Pergerakan Item
-        </CardHeader>
-        <CardContent className="space-y-2 pl-20">
-          <p>
-            <b>Item:</b> {item.item_name}
-          </p>
-          <p>
-            <b>Jenis:</b> {item.movement_type}
-          </p>
-          <p>
-            <b>Kuantiti:</b> {item.quantity}
-          </p>
-          {item.movement_type === "out" ? (
+    <Dialog open={!!item} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[90vh] w-[95vw] overflow-y-auto sm:w-full sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Butiran Pergerakan Item</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-3 text-sm">
+          <DetailRow label="Item" value={item.item_name} />
+          <DetailRow
+            label="Jenis"
+            value={
+              <span
+                className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                  isOut ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"
+                }`}
+              >
+                {item.movement_type}
+              </span>
+            }
+          />
+          <DetailRow label="Kuantiti" value={item.quantity} />
+
+          {isOut ? (
             <>
-              <p><b>Kitchen:</b> {item.destination || "-"}</p>
-              <p><b>Remark:</b> {item.remarks || "-"}</p>
+              <DetailRow label="Kitchen" value={item.destination || "-"} />
+              <DetailRow label="Remark" value={item.remarks || "-"} />
             </>
           ) : (
             <>
-              <p><b>Source:</b> {item.source || "-"}</p>
-              <p><b>Reason:</b> {item.reason || "-"}</p>
-              <p><b>Remark:</b> {item.remarks || "-"}</p>
+              <DetailRow label="Source" value={item.source || "-"} />
+              <DetailRow label="Reason" value={item.reason || "-"} />
+              <DetailRow label="Remark" value={item.remarks || "-"} />
             </>
           )}
-          <p><b>Tarikh:</b>{" "}
-            {new Date(item.created_at).toLocaleString("en-MY", {
+
+          <DetailRow
+            label="Tarikh"
+            value={new Date(item.created_at).toLocaleString("en-MY", {
               day: "2-digit",
               month: "short",
               year: "numeric",
@@ -54,24 +65,43 @@ export default function MovementDetailPanel({
               minute: "2-digit",
               hour12: true,
             })}
-          </p>
+          />
+
           {item.unit_price !== undefined && (
-            <p><b>Unit Harga:</b> RM {item.unit_price} </p>
+            <DetailRow label="Unit Harga" value={`RM ${item.unit_price}`} />
           )}
           {item.total_amount !== undefined && (
-            <p><b>Jumlah:</b> RM {item.total_amount}</p>
+            <DetailRow label="Jumlah" value={`RM ${item.total_amount}`} />
           )}
+
           {item.proof_image && (
-            <img src={item.proof_image}className="w-100 h-100 mt-3 rounded border"/>
+            <div>
+              <p className="mb-1.5 font-medium text-gray-700">Bukti Gambar</p>
+              <img
+                src={item.proof_image}
+                alt="Bukti pergerakan"
+                className="max-h-72 w-full rounded border object-contain"
+              />
+            </div>
           )}
-        </CardContent>
+        </div>
+
         <Button
           onClick={onClose}
-          className="mt-4 w-full destructive text-white py-2 rounded"
+          className="mt-4 w-full py-2 text-white"
         >
           Tutup
         </Button>
-      </div>
-    </Card>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-3 border-b border-gray-100 pb-2 last:border-b-0">
+      <span className="flex-shrink-0 font-medium text-gray-500">{label}</span>
+      <span className="text-right text-gray-900">{value}</span>
+    </div>
   );
 }

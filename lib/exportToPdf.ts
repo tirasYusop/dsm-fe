@@ -8,7 +8,7 @@ interface ExportPdfOptions {
   columns: string[];
   rows: (string | number)[][];
   subtitle?: string;
-  footer?: string[]; // optional totals row
+  footer?: string[];
 }
 
 export function exportToPdf({ title, filename, columns, rows, subtitle, footer }: ExportPdfOptions) {

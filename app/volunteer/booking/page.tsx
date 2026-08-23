@@ -81,9 +81,10 @@ export default function VolunteerKitchenRosterPage() {
     <RoleGuard allowedRoles={["volunteer"]}>
       <div className="space-y-6">
         <div className="flex flex-col items-start justify-between md:flex-row ">
-          <h1 className="text-xl font-bold sm:text-2xl">
-            Students Booking
-          </h1>
+          <div>
+            <h1 className="text-xl font-bold sm:text-2xl">Tempahan Pelajar</h1>
+            <p className="text-sm text-gray-500">Senarai tempahan pelajar untuk hari ini</p>
+          </div>
           <input
             type="date"
             value={date}

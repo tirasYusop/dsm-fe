@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import API from "@/lib/api1";
 import RoleGuard from "@/components/auth/roleguard";
 import { Table, TableHeader, TableHead, TableRow, TableCell, TableBody } from "@/components/ui/table";
@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import { Kitchen, ShiftSlot, WeekDay, VolunteerProfile } from "@/types/kitchen";
 import PageHeader from "@/components/ui/page-header";
+import PillTabs from "@/components/ui/pill-tabs";
 
 function startOfWeek(date: Date): string {
   const d = new Date(date);
@@ -38,9 +39,10 @@ export default function VolunteerSchedulePage() {
   const fetchKitchens = async () => {
     try {
       const res = await API.get("/kitchens/");
-      setKitchens(res.data.results ?? res.data);
-      if (!selectedKitchen && res.data.length > 0) {
-        setSelectedKitchen(String(res.data.results ?? res.data[0].id));
+      const kitchenData = res.data.results ?? res.data;
+      setKitchens(kitchenData);
+      if (kitchenData.length > 0) {
+        setSelectedKitchen((prev) => prev || String(kitchenData[0].id));
       }
     } catch (err) {
       console.log(err);
@@ -78,6 +80,11 @@ export default function VolunteerSchedulePage() {
     fetchWeek();
     fetchVolunteers();
   }, [fetchWeek, fetchVolunteers]);
+
+  const kitchenTabs = useMemo(
+    () => kitchens.map((k) => ({ value: String(k.id),  label: k.code || k.name })),
+    [kitchens]
+  );
 
   const handleAssign = async (date: string, slotId: number, volunteerId: number) => {
     try {
@@ -135,24 +142,14 @@ export default function VolunteerSchedulePage() {
           </Card>
         </div>
 
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Dapur</label>
-            <select
-              className="w-56 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
-              value={selectedKitchen}
-              onChange={(e) => setSelectedKitchen(e.target.value)}
-            >
-              {kitchens.map((k) => (
-                <option key={k.id} value={k.id}>{k.name}</option>
-              ))}
-            </select>
-          </div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <PillTabs options={kitchenTabs} value={selectedKitchen} onChange={setSelectedKitchen} />
+
           <div className="flex items-center gap-2">
             <button onClick={() => shiftWeek(-1)} className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50">
               <ChevronLeft className="h-4 w-4" />Sebelum
             </button>
-            <span className="text-sm font-medium text-gray-700">
+            <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
               {new Date(weekStart).toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" })}
             </span>
             <button onClick={() => shiftWeek(1)} className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50">

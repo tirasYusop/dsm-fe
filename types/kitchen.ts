@@ -128,6 +128,7 @@ export interface Shift {
   notes: string;
   duration_minutes: number;
   is_active: boolean;
+  auto_clocked_out:boolean;
 };
 
 export interface Request {
@@ -191,4 +192,34 @@ export interface DaySlot {
 export interface WeekDay {
   date: string;
   slots: DaySlot[];
+}
+
+type ReportStatus = "open" | "in_progress" | "resolved";
+
+export interface StatusUpdate {
+  id: number;
+  status: ReportStatus;
+  status_display: string;
+  notes: string;
+  updated_by_name: string | null;
+  created_at: string;
+}
+
+export interface Report {
+  id: number;
+  title: string;
+  description: string;
+  category_display: string;
+  severity: "low" | "medium" | "high";
+  severity_display: string;
+  status: ReportStatus;
+  status_display: string;
+  reporter_name: string;
+  reported_by_name: string | null;
+  kitchen_name: string;
+  asset_name: string | null;
+  photo_url: string | null;
+  resolution_notes: string;
+  status_history: StatusUpdate[];
+  created_at: string;
 }

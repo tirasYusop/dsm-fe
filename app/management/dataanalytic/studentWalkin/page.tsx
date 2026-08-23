@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import API from "@/lib/api1";
 import { TableRow, TableCell } from "@/components/ui/table";
 import DataTable from "@/components/table";
 import PageHeader from "@/components/ui/page-header";
-import SectionHeading from "@/components/ui/section-heading";
 import RoleGuard from "@/components/auth/roleguard";
 import FilterBar from "@/components/filterBar";
+import PillTabs from "@/components/ui/pill-tabs";
 import ExportButton from "@/components/exportButton";
 import PaginationControls from "@/components/common/PaginationControls";
 import { getResults, getPageMeta, type PaginatedResponse } from "@/lib/pagination";
@@ -39,6 +39,8 @@ export default function StudentWalkinPage() {
   const [activities, setActivities] = useState<Record<number, StudentActivity>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState("");
+  const [kitchenNames, setKitchenNames] = useState<string[]>([]);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -47,12 +49,12 @@ export default function StudentWalkinPage() {
   const [previousPage, setPreviousPage] = useState<string | null>(null);
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
 
-  const fetchWalkin = async (currentPage: number) => {
+  const fetchWalkin = async (currentPage: number, kitchen: string) => {
     setLoading(true);
     try {
       const res = await API.get<PaginatedResponse<Attendance> | Attendance[]>(
         "/attendance/management/walk-in/",
-        { params: { page: currentPage } }
+        { params: { page: currentPage, kitchen } }
       );
       const results = getResults(res.data);
       const meta = getPageMeta(res.data, pageSize);
@@ -71,6 +73,33 @@ export default function StudentWalkinPage() {
     }
   };
 
+  const [kitchenOptions, setKitchenOptions] = useState<{ value: string; label: string }[]>([]);
+
+  const fetchKitchenNames = async () => {
+    try {
+      const res = await API.get<PaginatedResponse<Attendance> | Attendance[]>(
+        "/attendance/management/walk-in/",
+        { params: { page_size: 1000 } }
+      );
+      const results = getResults(res.data);
+
+      const map = new Map<string, string>();
+      results.forEach((r) => {
+        const name = r.kitchen?.name;
+        if (name) {
+          map.set(name, r.kitchen?.code || name);
+        }
+      });
+
+      const options = Array.from(map, ([value, label]) => ({ value, label })).sort((a, b) =>
+        a.label.localeCompare(b.label)
+      );
+      setKitchenOptions(options);
+    } catch (error) {
+      console.error("Failed to load kitchen list", error);
+    }
+  };
+
   const fetchActivities = async () => {
     try {
       const res = await API.get<StudentActivity[]>("/attendance/activity/list/");
@@ -86,27 +115,39 @@ export default function StudentWalkinPage() {
 
   useEffect(() => {
     fetchActivities();
+    fetchKitchenNames();
   }, []);
 
   useEffect(() => {
-    fetchWalkin(page);
-  }, [page]);
+    if (!activeTab && kitchenOptions.length > 0) {
+      setActiveTab(kitchenOptions[0].value);
+    }
+  }, [kitchenOptions, activeTab]);
 
-  // Search filters within the current page only — see note below.
-  const filteredRecords = search.trim()
-    ? records.filter(
-        (r) =>
-          r.student.name.toLowerCase().includes(search.toLowerCase()) ||
-          r.student.student_id.toLowerCase().includes(search.toLowerCase())
-      )
-    : records;
+  useEffect(() => {
+    if (!activeTab) return;
+    fetchWalkin(page, activeTab);
+   }, [page, activeTab]);
 
-  const groupedKitchen = filteredRecords.reduce((acc: Record<string, Attendance[]>, item) => {
-    const kitchenId = item.kitchen?.id?.toString() ?? "unknown";
-    if (!acc[kitchenId]) acc[kitchenId] = [];
-    acc[kitchenId].push(item);
-    return acc;
-  }, {});
+  useEffect(() => {
+    setPage(1);
+  }, [activeTab]);
+
+  const TABS = useMemo(
+    () => kitchenOptions.map((k) => ({ value: k.value, label: k.label })),
+    [kitchenOptions]
+  );
+
+
+  const filteredRecords = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return records;
+    return records.filter(
+      (r) =>
+        r.student.name.toLowerCase().includes(q) ||
+        r.student.student_id.toLowerCase().includes(q)
+    );
+  }, [records, search]);
 
   return (
     <RoleGuard allowedRoles={["management"]}>
@@ -114,77 +155,141 @@ export default function StudentWalkinPage() {
         <PageHeader
           title="Kehadiran Pelajar (Walk In)"
           action={
-            <ExportButton
-              title="Kehadiran Pelajar (Walk In)"
-              filename="student-walkin-attendance"
-              columns={["Bil", "ID Pelajar", "Nama", "Fakulti", "Check In", "Aktiviti"]}
-              rows={filteredRecords.map((item, i) => [
-                (page - 1) * pageSize + i + 1,
-                item.student.student_id,
-                item.student.name,
-                item.student.faculty,
-                new Date(item.check_in_time).toLocaleString(),
-                activityLabel(activities[item.id]),
-              ])}
-              subtitle="Eksport halaman semasa sahaja"
-            />
+            <div className="w-full sm:w-auto">
+              <ExportButton
+                title={`Kehadiran Pelajar (Walk In) - ${activeTab}`}
+                filename={`student-walkin-attendance-${activeTab}`}
+                columns={["Bil", "ID Pelajar", "Nama", "Fakulti", "Check In", "Aktiviti"]}
+                rows={filteredRecords.map((item, i) => [
+                  (page - 1) * pageSize + i + 1,
+                  item.student.student_id,
+                  item.student.name,
+                  item.student.faculty,
+                  new Date(item.check_in_time).toLocaleString(),
+                  activityLabel(activities[item.id]),
+                ])}
+                subtitle="Eksport halaman semasa sahaja"
+              />
+            </div>
           }
         />
 
-        <FilterBar
-          search={{ value: search, onChange: setSearch, placeholder: "Cari nama / ID pelajar..." }}
-          hasActiveFilters={!!search}
-          onClear={() => setSearch("")}
-        />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="overflow-x-auto">
+            <PillTabs options={TABS} value={activeTab} onChange={setActiveTab} />
+          </div>
+           <FilterBar
+            search={{ value: search, onChange: setSearch, placeholder: "Cari nama / ID pelajar..." }}
+            hasActiveFilters={!!search}
+            onClear={() => setSearch("")}
+          />
+        </div>
+        
 
-        {Object.keys(groupedKitchen).map((kitchenId) => {
-          const kitchenRecords = groupedKitchen[kitchenId];
-          const kitchen = kitchenRecords[0].kitchen;
-          return (
-            <div key={kitchenId} className="space-y-3">
-              <SectionHeading>{kitchen?.name}</SectionHeading>
-              <DataTable
-                columns={COLUMNS}
-                data={kitchenRecords}
-                loading={loading}
-                emptyMessage="Tiada rekod walk-in."
-                renderRow={(item, index) => {
-                  const activity = activities[item.id];
-                  return (
-                    <TableRow key={item.id}>
-                      <TableCell className="p-2">{index + 1}</TableCell>
-                      <TableCell className="p-2">{item.student.student_id}</TableCell>
-                      <TableCell className="p-2">{item.student.name}</TableCell>
-                      <TableCell className="p-2 text-center">{item.student.faculty}</TableCell>
-                      <TableCell className="p-2 text-center">
-                        {new Date(item.check_in_time).toLocaleString()}
-                      </TableCell>
-                      <TableCell className="p-2">
-                        {!activity ? (
-                          <span className="text-xs text-muted-foreground">Not recorded</span>
-                        ) : (
-                          <ul className="text-xs space-y-0.5">
-                            {activity.took_rice && <li>Mengambil Nasi</li>}
-                            {activity.took_dish && <li>Mengambil Lauk</li>}
-                            {activity.used_kitchen && <li>Menggunakan Dapur</li>}
-                            {activity.took_foodbank && (
-                              <li>
-                                Foodbank: {activity.foodbank_items.map((f) => `${f.item_name} x${f.quantity}`).join(", ")}
-                              </li>
-                            )}
-                            {!activity.took_rice && !activity.took_dish && !activity.used_kitchen && !activity.took_foodbank && (
-                              <li className="text-muted-foreground">Tiada Aktiviti</li>
-                            )}
-                          </ul>
+        {/* Desktop / tablet: table */}
+        <div className="hidden sm:block">
+          <DataTable
+            columns={COLUMNS}
+            data={filteredRecords}
+            loading={loading}
+            emptyMessage="Tiada rekod walk-in."
+            renderRow={(item, index) => {
+              const activity = activities[item.id];
+              return (
+                <TableRow key={item.id}>
+                  <TableCell className="p-2">{(page - 1) * pageSize + index + 1}</TableCell>
+                  <TableCell className="p-2">{item.student.student_id}</TableCell>
+                  <TableCell className="p-2">{item.student.name}</TableCell>
+                  <TableCell className="p-2 text-center">{item.student.faculty}</TableCell>
+                  <TableCell className="p-2 text-center">
+                    {new Date(item.check_in_time).toLocaleString()}
+                  </TableCell>
+                  <TableCell className="p-2">
+                    {!activity ? (
+                      <span className="text-xs text-muted-foreground">Not recorded</span>
+                    ) : (
+                      <ul className="text-xs space-y-0.5">
+                        {activity.took_rice && <li>Mengambil Nasi</li>}
+                        {activity.took_dish && <li>Mengambil Lauk</li>}
+                        {activity.used_kitchen && <li>Menggunakan Dapur</li>}
+                        {activity.took_foodbank && (
+                          <li>
+                            Foodbank: {activity.foodbank_items.map((f) => `${f.item_name} x${f.quantity}`).join(", ")}
+                          </li>
                         )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                }}
-              />
+                        {!activity.took_rice && !activity.took_dish && !activity.used_kitchen && !activity.took_foodbank && (
+                          <li className="text-muted-foreground">Tiada Aktiviti</li>
+                        )}
+                      </ul>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            }}
+          />
+        </div>
+
+        {/* Mobile: stacked cards */}
+        <div className="space-y-3 sm:hidden">
+          {loading ? (
+            <div className="rounded-lg border bg-white p-4 text-center text-sm text-gray-500">
+              Loading...
             </div>
-          );
-        })}
+          ) : filteredRecords.length === 0 ? (
+            <div className="rounded-lg border bg-white p-6 text-center text-sm text-gray-500">
+              Tiada rekod walk-in.
+            </div>
+          ) : (
+            filteredRecords.map((item, index) => {
+              const activity = activities[item.id];
+              return (
+                <div key={item.id} className="rounded-lg border bg-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-400">#{(page - 1) * pageSize + index + 1}</p>
+                      <p className="truncate font-semibold text-gray-900">{item.student.name}</p>
+                      <p className="text-sm text-gray-500">{item.student.student_id}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-y-2 border-t border-gray-100 pt-3 text-sm">
+                    <div>
+                      <p className="text-xs text-gray-400">Fakulti</p>
+                      <p className="font-medium text-gray-800">{item.student.faculty || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400">Check In</p>
+                      <p className="font-medium text-gray-800">
+                        {new Date(item.check_in_time).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-2 border-t border-gray-100 pt-2 text-sm">
+                    <p className="mb-1 text-xs text-gray-400">Aktiviti</p>
+                    {!activity ? (
+                      <span className="text-xs text-muted-foreground">Not recorded</span>
+                    ) : (
+                      <ul className="space-y-0.5 text-xs text-gray-700">
+                        {activity.took_rice && <li>• Mengambil Nasi</li>}
+                        {activity.took_dish && <li>• Mengambil Lauk</li>}
+                        {activity.used_kitchen && <li>• Menggunakan Dapur</li>}
+                        {activity.took_foodbank && (
+                          <li>
+                            • Foodbank: {activity.foodbank_items.map((f) => `${f.item_name} x${f.quantity}`).join(", ")}
+                          </li>
+                        )}
+                        {!activity.took_rice && !activity.took_dish && !activity.used_kitchen && !activity.took_foodbank && (
+                          <li className="text-muted-foreground">Tiada Aktiviti</li>
+                        )}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
 
         {totalRecords > 0 && (
           <PaginationControls
@@ -195,6 +300,7 @@ export default function StudentWalkinPage() {
             onNext={() => setPage((p) => p + 1)}
             onPrevious={() => setPage((p) => p - 1)}
             loading={loading}
+            currentCount={filteredRecords.length}
             totalCount={totalRecords}
             pageSize={pageSize}
             itemLabel="rekod"

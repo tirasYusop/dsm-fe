@@ -105,9 +105,6 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-2">
             <Image src="/DAPUR.png" alt="Dapur Siswa Madani @ UMS" width={36} height={36} className="h-8 w-8 object-contain sm:h-9 sm:w-9" />
-            <span className="font-['Playfair_Display'] text-sm font-semibold text-white sm:text-lg">
-              Dapur Siswa Madani @ UMS
-            </span>
           </div>
 
           <nav className="hidden items-center gap-6 text-sm font-medium sm:flex">
@@ -214,7 +211,7 @@ export default function LandingPage() {
           {/* Tajuk utama */}
           <div data-aos="fade-up" data-aos-delay="200" className="flex flex-col items-center">
             <h1 className="font-['Playfair_Display'] max-w-4xl text-4xl font-bold leading-[1.1] tracking-tight sm:text-6xl md:text-7xl lg:text-8xl">
-              <span className="text-white">Dapur Siswa Madani @ UMS</span>{" "}
+              <span className="text-white">Dapur Siswa</span>{" "}
               <span className="relative inline-block bg-gradient-to-r from-cyan-300 via-blue-200 to-white bg-clip-text text-transparent drop-shadow-sm animate-gradient-x bg-[length:200%_auto]">
                 Madani
               </span>

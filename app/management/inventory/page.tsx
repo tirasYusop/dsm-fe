@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import API from "@/lib/api1";
 import RoleGuard from "@/components/auth/roleguard";
 import SourceFilter from "@/components/inventory/sourceFilter";
@@ -41,6 +41,7 @@ export default function InventoryPage() {
   const [outTotalPages, setOutTotalPages] = useState(1);
   const [outPageSize, setOutPageSize] = useState(1);
   const [outCount, setOutCount] = useState(0);
+  const [activeKitchen, setActiveKitchen] = useState<string>("");
 
   const [movementTarget, setMovementTarget] = useState<MovementTarget | null>(null);
   const [addItemOpen, setAddItemOpen] = useState(false);
@@ -87,7 +88,6 @@ export default function InventoryPage() {
     }
   };
 
-  // reset to page 1 whenever the source filter changes
   useEffect(() => {
     setInPage(1);
   }, [source]);
@@ -102,6 +102,21 @@ export default function InventoryPage() {
 
   const kitchens: Kitchen[] =
     outItems[0]?.kitchens.map((k) => ({ id: k.kitchen_id, code: k.kitchen_name })) ?? [];
+
+  const kitchenTabs = useMemo(
+    () =>
+      (outItems[0]?.kitchens ?? []).map((k) => ({
+        value: String(k.kitchen_id),
+        label: k.kitchen_name,
+      })),
+    [outItems]
+  );
+
+  useEffect(() => {
+    if (!activeKitchen && kitchenTabs.length > 0) {
+      setActiveKitchen(kitchenTabs[0].value);
+    }
+  }, [kitchenTabs, activeKitchen]);
 
   const handleSubmitMovement = async (data: {
     quantity: number;
@@ -143,6 +158,7 @@ export default function InventoryPage() {
   };
 
   const sourceLabel = SOURCES.find((s) => s.value === source)?.label ?? source;
+  const activeKitchenLabel = kitchenTabs.find((k) => k.value === activeKitchen)?.label ?? "Dapur";
 
   return (
     <RoleGuard allowedRoles={["management"]}>
@@ -151,13 +167,14 @@ export default function InventoryPage() {
           <PageHeader title="Inventori" subtitle="Urus stok gudang dan pemindahan dapur di satu tempat." />
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex w-fit gap-1 rounded-lg bg-gray-100 p-1">
+        {/* Tab switch + (in-tab) source filter/add button — stacks on mobile */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <div className="flex w-full gap-1 rounded-lg bg-gray-100 p-1 sm:w-fit">
             {(["in", "out"] as const).map((key) => (
               <button
                 key={key}
                 onClick={() => setTab(key)}
-                className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
+                className={`flex-1 rounded-md px-4 py-1.5 text-sm font-medium transition sm:flex-none ${
                   tab === key ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
                 }`}
               >
@@ -167,15 +184,27 @@ export default function InventoryPage() {
           </div>
 
           {tab === "in" && (
-            <div className="flex items-center gap-3">
-              <SourceFilter sources={SOURCES} selected={source} onSelect={setSource} />
-              <Button onClick={() => setAddItemOpen(true)}>+ Tambah item</Button>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <div className="min-w-0 overflow-x-auto">
+                <SourceFilter sources={SOURCES} selected={source} onSelect={setSource} />
+              </div>
+              <Button onClick={() => setAddItemOpen(true)} className="w-full sm:w-auto">
+                + Tambah item
+              </Button>
             </div>
           )}
         </div>
 
-        <div className="overflow-hidden rounded-lg border bg-white">
-          {tab === "in" ? (
+        {tab === "out" && kitchenTabs.length > 0 && (
+          <div className="overflow-x-auto">
+            <PillTabs options={kitchenTabs} value={activeKitchen} onChange={setActiveKitchen} />
+          </div>
+        )}
+
+        {tab === "in" ? (
+          <>
+            {/* Desktop / tablet table */}
+            <div className="hidden overflow-hidden rounded-lg border bg-white sm:block">
               <Table className="w-full">
                 <TableHeader>
                   <TableRow className="bg-gray-100">
@@ -226,59 +255,184 @@ export default function InventoryPage() {
                   )}
                 </TableBody>
               </Table>
-            ) : (
+            </div>
+
+            {/* Mobile card list */}
+            <div className="space-y-3 sm:hidden">
+              {loading ? (
+                <div className="rounded-lg border bg-white p-4 text-center text-sm text-gray-500">
+                  Loading...
+                </div>
+              ) : sourceStocks.length === 0 ? (
+                <div className="rounded-lg border bg-white p-6 text-center text-sm text-gray-500">
+                  Tiada rekod stok masuk lagi.
+                </div>
+              ) : (
+                sourceStocks.map((s, index) => (
+                  <div key={s.id} className="rounded-lg border bg-white p-4 shadow-sm">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-xs text-gray-400">#{(inPage - 1) * inPageSize + index + 1}</p>
+                        <p className="truncate font-semibold text-gray-900">{s.item_name}</p>
+                        <p className="text-sm text-gray-500">RM {s.price_per_unit}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="flex-shrink-0"
+                        onClick={() =>
+                          setMovementTarget({
+                            id: s.item,
+                            name: s.item_name,
+                            unit: "",
+                            defaultUnitPrice: s.price_per_unit ? Number(s.price_per_unit) : undefined,
+                          })
+                        }
+                      >
+                        Tambah
+                      </Button>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-2 gap-y-2 border-t border-gray-100 pt-3 text-sm">
+                      <div>
+                        <p className="text-xs text-gray-400">Jumlah Diterima</p>
+                        <p className="font-medium text-gray-800">{s.total_received}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400">Terbaharu Ditambah</p>
+                        <p className="font-medium text-gray-800">{s.latest_added}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400">Jumlah Harga</p>
+                        <p className="font-medium text-gray-800">RM {Number(s.total_amount ?? 0).toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400">Kemas kini terakhir</p>
+                        <p className="font-medium text-gray-800">
+                          {s.last_updated ? new Date(s.last_updated).toLocaleString() : "-"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Desktop / tablet table */}
+            <div className="hidden overflow-hidden rounded-lg border bg-white sm:block">
               <Table className="w-full">
                 <TableHeader>
                   <TableRow className="bg-gray-100">
                     <TableHead>No.</TableHead>
                     <TableHead>Item</TableHead>
                     <TableHead className="text-center">Warehouse</TableHead>
-                    {outItems[0]?.kitchens.map((k) => (
-                      <TableHead key={k.kitchen_id} className="text-center">
-                        {k.kitchen_name}
-                      </TableHead>
-                    ))}
+                    <TableHead className="text-center">{activeKitchenLabel}</TableHead>
                     <TableHead className="text-right">Tindakan</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={10}>Loading...</TableCell>
+                      <TableCell colSpan={5}>Loading...</TableCell>
                     </TableRow>
                   ) : (
-                    outItems.map((item, index) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-medium w-10">
-                          {(outPage - 1) * outPageSize + index + 1}
-                        </TableCell>
-                        <TableCell className="font-medium">{item.name}</TableCell>
-                        <TableCell className="text-center font-bold">{item.management_stock}</TableCell>
-                        {item.kitchens.map((k) => (
-                          <TableCell key={k.kitchen_id} className="text-center">
-                            <p className="font-semibold">{k.stock}</p>
-                            <div className="mt-1">
-                              <StatusBadge status={k.status} />
-                            </div>
+                    outItems.map((item, index) => {
+                      const kitchenStock = item.kitchens.find(
+                        (k) => String(k.kitchen_id) === activeKitchen
+                      );
+                      return (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-medium w-10">
+                            {(outPage - 1) * outPageSize + index + 1}
                           </TableCell>
-                        ))}
-                        <TableCell className="text-right">
-                          <Button
-                            size="sm"
-                            onClick={() =>
-                              setMovementTarget({ id: item.id, name: item.name, unit: item.unit })
-                            }
-                          >
-                            Pindahkan
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                          <TableCell className="font-medium">{item.name}</TableCell>
+                          <TableCell className="text-center font-bold">{item.management_stock}</TableCell>
+                          <TableCell className="text-center">
+                            {kitchenStock ? (
+                              <>
+                                <p className="font-semibold">{kitchenStock.stock}</p>
+                                <div className="mt-1">
+                                  <StatusBadge status={kitchenStock.status} />
+                                </div>
+                              </>
+                            ) : (
+                              "-"
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              size="sm"
+                              onClick={() =>
+                                setMovementTarget({ id: item.id, name: item.name, unit: item.unit })
+                              }
+                            >
+                              Pindahkan
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
-            )}
-          </div>
+            </div>
+
+            {/* Mobile card list */}
+            <div className="space-y-3 sm:hidden">
+              {loading ? (
+                <div className="rounded-lg border bg-white p-4 text-center text-sm text-gray-500">
+                  Loading...
+                </div>
+              ) : outItems.length === 0 ? (
+                <div className="rounded-lg border bg-white p-6 text-center text-sm text-gray-500">
+                  Tiada item lagi.
+                </div>
+              ) : (
+                outItems.map((item, index) => {
+                  const kitchenStock = item.kitchens.find(
+                    (k) => String(k.kitchen_id) === activeKitchen
+                  );
+                  return (
+                    <div key={item.id} className="rounded-lg border bg-white p-4 shadow-sm">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-xs text-gray-400">#{(outPage - 1) * outPageSize + index + 1}</p>
+                          <p className="truncate font-semibold text-gray-900">{item.name}</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          className="flex-shrink-0"
+                          onClick={() => setMovementTarget({ id: item.id, name: item.name, unit: item.unit })}
+                        >
+                          Pindahkan
+                        </Button>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 gap-y-2 border-t border-gray-100 pt-3 text-sm">
+                        <div>
+                          <p className="text-xs text-gray-400">Warehouse</p>
+                          <p className="font-bold text-gray-800">{item.management_stock}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-400">{activeKitchenLabel}</p>
+                          {kitchenStock ? (
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold text-gray-800">{kitchenStock.stock}</p>
+                              <StatusBadge status={kitchenStock.status} />
+                            </div>
+                          ) : (
+                            <p className="text-gray-500">-</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </>
+        )}
 
         {tab === "in" ? (
           <PaginationControls

@@ -21,7 +21,7 @@ export default function DashboardLayout({
       label: "Inventori",
       items: [
         { label: "Inventori (Masuk/Keluar)", href: "/management/inventory" },
-        { label: "Ringkasan Inventori", href: "/management/history" },
+        { label: "Rekod Inventori", href: "/management/history" },
       ],
     },
     {
@@ -40,6 +40,7 @@ export default function DashboardLayout({
         { label: "Sukarelawan Dapur", href: "/management/kitchen/volunteer" },
         { label: "Laporan Sukarelawan", href: "/management/kitchen/volunteer/report" },
         { label: "Jadual Betugas", href: "/management/kitchen/volunteer/schedual" },
+        { label: "Aduan", href: "/management/report" },
       ],
     },
     {

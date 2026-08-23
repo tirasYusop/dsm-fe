@@ -40,6 +40,14 @@ export default function HistoryPage() {
   }, [search, date, sourceFilter, activeTab]);
 
   useEffect(() => {
+    if (activeTab === "stock in") {
+      setLocationFilter("all");
+    } else {
+      setSourceFilter("all");
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
     setLoading(true);
     setError(null);
 
@@ -136,17 +144,19 @@ export default function HistoryPage() {
         <PageHeader
           title="Sejarah Pergerakkan Inventori (Masuk / Keluar)"
           action={
-            <ExportButton
-              title="Ringkasan Inventori DSM@UMS"
-              filename="inventory-history"
-              columns={["No", "Item", "Type", "Qty", "Location", "Source", "Remarks", "Total Price", "Date"]}
-              rows={exportRows}
-              footer={
-                activeTab === "stock in" && totalAmount != null
-                  ? ["", "", "", "", "", "", "", "Jumlah", `RM ${totalAmount.toFixed(2)}`]
-                  : undefined
-              }
-            />
+            <div className="w-full sm:w-auto">
+              <ExportButton
+                title="Ringkasan Inventori DSM@UMS"
+                filename="inventory-history"
+                columns={["No", "Item", "Type", "Qty", "Location", "Source", "Remarks", "Total Price", "Date"]}
+                rows={exportRows}
+                footer={
+                  activeTab === "stock in" && totalAmount != null
+                    ? ["", "", "", "", "", "", "", "Jumlah", `RM ${totalAmount.toFixed(2)}`]
+                    : undefined
+                }
+              />
+            </div>
           }
         />
 
@@ -154,45 +164,51 @@ export default function HistoryPage() {
 
         <FilterBar
           search={{ value: search, onChange: setSearch, placeholder: "Search item..." }}
-          selects={[
-            {
-              value: locationFilter === "all" ? "" : locationFilter,
-              onChange: (v) => setLocationFilter(v || "all"),
-              options: kitchenOptions.map((k) => ({ value: k, label: k })),
-              allLabel: "All Locations",
-            },
-            {
-              value: sourceFilter === "all" ? "" : sourceFilter,
-              onChange: (v) => setSourceFilter(v || "all"),
-              options: sourceOptions.map((s) => ({ value: s, label: s })),
-              allLabel: "All Sources",
-            },
-          ]}
+          selects={
+            activeTab === "stock in"
+              ? [
+                  {
+                    value: sourceFilter === "all" ? "" : sourceFilter,
+                    onChange: (v) => setSourceFilter(v || "all"),
+                    options: sourceOptions.map((s) => ({ value: s, label: s })),
+                    allLabel: "Semua Sumber",
+                  },
+                ]
+              : [
+                  {
+                    value: locationFilter === "all" ? "" : locationFilter,
+                    onChange: (v) => setLocationFilter(v || "all"),
+                    options: kitchenOptions.map((k) => ({ value: k, label: k })),
+                    allLabel: "Semua Lokasi",
+                  },
+                ]
+          }
           hasActiveFilters={hasActiveFilters}
           onClear={clearFilters}
           rightSlot={
-            <div className="flex items-center gap-1">
+            <div className="flex w-full items-center gap-1 sm:w-auto">
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 sm:w-auto"
               />
               {date && (
-                <button onClick={() => setDate("")} className="text-xs text-gray-400 hover:text-gray-600" type="button">
+                <button
+                  onClick={() => setDate("")}
+                  className="flex-shrink-0 text-xs text-gray-400 hover:text-gray-600"
+                  type="button"
+                >
                   Clear
                 </button>
-              )}
-              {activeTab === "stock in" && totalAmount != null && (
-                <span className="ml-3 text-sm font-semibold text-gray-700">
-                  Jumlah Keseluruhan: RM {totalAmount.toFixed(2)}
-                </span>
               )}
             </div>
           }
         />
 
-        <PillTabs options={TABS} value={activeTab} onChange={setActiveTab} />
+        <div className="overflow-x-auto">
+          <PillTabs options={TABS} value={activeTab} onChange={setActiveTab} />
+        </div>
 
         <MovementTable
           data={filteredHistory}

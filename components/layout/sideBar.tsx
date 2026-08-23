@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import Image from "next/image"
+import Image from "next/image";
 
 import {
   Sidebar,
@@ -14,6 +14,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
+  useSidebar, // <-- add this
 } from "@/components/ui/sidebar";
 
 import LogoutButton from "@/components/auth/logout";
@@ -40,6 +41,11 @@ export default function AppSidebar({
   menuGroups,
 }: AppSidebarProps) {
   const pathname = usePathname();
+  const { isMobile, setOpenMobile } = useSidebar(); // <-- add this
+
+  const handleNavigate = () => {
+    if (isMobile) setOpenMobile(false);
+  };
 
   return (
     <Sidebar className="sidebar">
@@ -71,8 +77,8 @@ export default function AppSidebar({
                     isActive={pathname === item.href}
                     className="text-sm"
                   >
-                    <Link href={item.href}>
-                      {item.label}
+                    <Link href={item.href} onClick={handleNavigate}>
+                      <span className="truncate">{item.label}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -86,9 +92,7 @@ export default function AppSidebar({
         <LogoutButton />
 
         {footer && (
-          <p className="text-xs text-muted-foreground mt-2">
-            {footer}
-          </p>
+          <p className="text-xs text-muted-foreground mt-2">{footer}</p>
         )}
       </SidebarFooter>
     </Sidebar>

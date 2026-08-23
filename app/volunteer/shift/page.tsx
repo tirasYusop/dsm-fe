@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import API from "@/lib/api1";
 import RoleGuard from "@/components/auth/roleguard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Clock, Square, History } from "lucide-react";
-import {VolunteerProfile,Shift} from "@/types/kitchen"
+import { VolunteerProfile, Shift } from "@/types/kitchen";
+
+// How often to re-check whether the active shift is still open. Catches an
+// auto clock-out (scheduled slot ended) without the volunteer touching anything.
+const STATUS_POLL_MS = 60_000;
 
 function formatElapsed(startIso: string) {
   const diff = Math.max(0, Date.now() - new Date(startIso).getTime());
@@ -39,6 +43,7 @@ export default function VolunteerTimeLogPage() {
   const [history, setHistory] = useState<Shift[]>([]);
   const [elapsed, setElapsed] = useState("0:00:00");
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchRoster = async () => {
     try {
@@ -63,6 +68,22 @@ export default function VolunteerTimeLogPage() {
     fetchHistory();
   }, []);
 
+  // Pulled out of the effect below so the poll below can call the same logic.
+  const refreshCurrentShift = useCallback(async (volunteerId: number) => {
+    try {
+      const res = await API.get(`/volunteer-shifts/current/?volunteer=${volunteerId}`);
+      setCurrentShift((prev) => {
+        // If a shift that was open just came back null, it got auto clocked-out —
+        // refresh history so it shows up in the recent-shifts list right away.
+        if (prev && !res.data) fetchHistory();
+        return res.data;
+      });
+      if (res.data) setNotes((prev) => (prev === "" ? res.data.notes ?? "" : prev));
+    } catch (err) {
+      console.log(err);
+    }
+  }, []);
+
   useEffect(() => {
     if (!selectedId) {
       setCurrentShift(null);
@@ -70,18 +91,20 @@ export default function VolunteerTimeLogPage() {
       return;
     }
     setCheckingStatus(true);
-    (async () => {
-      try {
-        const res = await API.get(`/volunteer-shifts/current/?volunteer=${selectedId}`);
-        setCurrentShift(res.data);
-        setNotes(res.data?.notes ?? "");
-      } catch (err) {
-        console.log(err);
-      } finally {
-        setCheckingStatus(false);
-      }
-    })();
-  }, [selectedId]);
+    refreshCurrentShift(selectedId).finally(() => setCheckingStatus(false));
+  }, [selectedId, refreshCurrentShift]);
+
+  // While a shift is open, periodically re-check status — this is what surfaces
+  // an auto clock-out (the backend closes it lazily on this same endpoint).
+  useEffect(() => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    if (selectedId && currentShift) {
+      pollRef.current = setInterval(() => refreshCurrentShift(selectedId), STATUS_POLL_MS);
+    }
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [selectedId, currentShift, refreshCurrentShift]);
 
   useEffect(() => {
     if (tickRef.current) clearInterval(tickRef.current);
@@ -127,20 +150,20 @@ export default function VolunteerTimeLogPage() {
     <RoleGuard allowedRoles={["volunteer"]}>
       <div className="mx-auto max-w-md space-y-5 p-3 sm:p-4">
         <div>
-          <h1 className="text-lg font-semibold text-gray-900 sm:text-xl">Time log</h1>
-          <p className="text-sm text-gray-500">Select your name, then clock in or out.</p>
+          <h1 className="text-lg font-semibold text-gray-900 sm:text-xl">Rekod Kehadiran</h1>
+          <p className="text-sm text-gray-500">Pilih nama anda untuk merekod waktu masuk atau keluar.</p>
         </div>
 
         {/* Name picker */}
         <Card className="border-gray-100 shadow-sm">
           <CardContent className="p-4">
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Who are you?</label>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Nama</label>
             <select
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
               value={selectedId}
               onChange={(e) => setSelectedId(e.target.value ? Number(e.target.value) : "")}
             >
-              <option value="">Select your name</option>
+              <option value="">Pilih Nama Anda</option>
               {roster.map((v) => (
                 <option key={v.id} value={v.id}>
                   {v.name}
@@ -150,7 +173,7 @@ export default function VolunteerTimeLogPage() {
             </select>
             {roster.length === 0 && (
               <p className="mt-2 text-xs text-gray-500">
-                No volunteers registered yet — ask management to add you to the roster.
+                Tiada sukarelawan berdaftar buat masa ini. Sila hubungi pihak pengurusan untuk menambah nama anda ke dalam senarai.
               </p>
             )}
           </CardContent>
@@ -161,7 +184,7 @@ export default function VolunteerTimeLogPage() {
           <Card className="border-gray-100 shadow-sm">
             <CardContent className="space-y-4 p-4">
               {checkingStatus ? (
-                <p className="text-sm text-gray-500">Checking status...</p>
+                <p className="text-sm text-gray-500">Sedang menyemak status…</p>
               ) : currentShift ? (
                 <>
                   <div className="flex items-center justify-between">
@@ -217,7 +240,7 @@ export default function VolunteerTimeLogPage() {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <History className="h-4 w-4 text-gray-400" />
-              Recent shifts
+              Rekod Syif Terkini
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-1">
@@ -230,7 +253,14 @@ export default function VolunteerTimeLogPage() {
                   className="flex items-center justify-between rounded-lg px-2 py-2.5 transition hover:bg-gray-50"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{shift.volunteer_name}</p>
+                    <p className="text-sm font-medium text-gray-900">
+                      {shift.volunteer_name}
+                      {shift.auto_clocked_out && (
+                        <span className="ml-1.5 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
+                          auto
+                        </span>
+                      )}
+                    </p>
                     <p className="truncate text-xs text-gray-500">
                       {new Date(shift.clock_in).toLocaleDateString()} · {formatTime(shift.clock_in)} –{" "}
                       {shift.clock_out ? formatTime(shift.clock_out) : "—"}

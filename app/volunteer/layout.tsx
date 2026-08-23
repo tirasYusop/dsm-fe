@@ -24,15 +24,21 @@ export default function DashboardLayout({
       label: "Inventori",
       items: [
         { label: "Inventori", href: "/volunteer/inventory" },
-        { label: "Penggunaan Inventori", href: "/volunteer/usage" },
-        { label: "Permintaan Inventori", href: "/volunteer/request" },
+        { label: "Rekod Penggunaan", href: "/volunteer/usage" },
+        { label: "Permohonan Inventori", href: "/volunteer/request" },
       ],
     },
     {
       label: "Shif",
       items: [
-        { label: "Clock in", href: "/volunteer/shift" },
+        { label: "Kehadiran", href: "/volunteer/shift" },
         { label: "Jadual Bertugas", href: "/volunteer/schedul" },
+      ],
+    },
+    {
+      label: "Aduan",
+      items: [
+        { label: "Aduan", href: "/volunteer/report" },
       ],
     },
   ];

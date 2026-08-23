@@ -22,7 +22,6 @@ export default function FilterBar({ search, selects = [], onClear, hasActiveFilt
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-3">
-        <Filter className="h-4 w-4 text-muted-foreground" />
         {search && (
           <input
             type="text"

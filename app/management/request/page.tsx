@@ -9,10 +9,19 @@ import { TableRow, TableCell } from "@/components/ui/table";
 import RoleGuard from "@/components/auth/roleguard";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { Download, Check, PackageCheck, X, ShoppingCart } from "lucide-react";
-import type { Request,ItemInfo,GroupedRequests,StockCheck} from "@/types/kitchen"
+import { Download, Check, PackageCheck, X, ShoppingCart, MoreVertical } from "lucide-react";
+import type { Request, ItemInfo, GroupedRequests, StockCheck } from "@/types/kitchen";
 import PageHeader from "@/components/ui/page-header";
 import DataTable from "@/components/table";
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+
+type ItemInfoWithPackage = ItemInfo & { package_size?: number | string | null };
+type RequestWithFulfillment = Request & { fulfilled_from_stock?: boolean };
 
 const STATUS_BADGE_STYLES: Record<string, string> = {
     approved: "bg-green-100 text-green-700 hover:bg-green-100",
@@ -27,6 +36,16 @@ const STATUS_FILTERS = [
     { value: "rejected", label: "Ditolak" },
 ];
 
+const REQUEST_COLUMNS = [
+    { key: "no", label: "Bil.", className: "w-10" },
+    { key: "item", label: "Item" },
+    { key: "qty", label: "Kuantiti" },
+    { key: "reason", label: "Sebab" },
+    { key: "stock", label: "Stok Check" },
+    { key: "status", label: "Status" },
+    { key: "action", label: "Tincakan", align: "center" as const },
+];
+
 const getBadgeStyle = (status: string) =>
     STATUS_BADGE_STYLES[status] ?? "bg-gray-100 text-gray-700 hover:bg-gray-100";
 
@@ -35,6 +54,29 @@ const getItemLabel = (req: Request) =>
     (req.new_item_package_size
         ? ` (${parseFloat(String(req.new_item_package_size))} ${req.new_item_unit})`
         : "");
+
+const getBaseName = (req: Request) => req.item_name ?? req.new_item_name ?? "-";
+
+const getPackageSizeDisplay = (
+    req: Request,
+    itemInfoMap: Record<number, ItemInfoWithPackage>
+): string => {
+    if (req.item != null) {
+        const size = itemInfoMap[req.item]?.package_size;
+        return size != null && size !== "" ? String(parseFloat(String(size))) : "-";
+    }
+    return req.new_item_package_size ? String(parseFloat(String(req.new_item_package_size))) : "-";
+};
+
+const getUnitDisplay = (
+    req: Request,
+    itemInfoMap: Record<number, ItemInfoWithPackage>
+): string => {
+    if (req.item != null) {
+        return itemInfoMap[req.item]?.unit ?? "-";
+    }
+    return req.new_item_unit ?? "-";
+};
 
 function StockCheckBadge({ check }: { check: StockCheck }) {
     if (check.isNew) {
@@ -56,6 +98,31 @@ function StockCheckBadge({ check }: { check: StockCheck }) {
     );
 }
 
+function getActionInfo(req: RequestWithFulfillment) {
+    if (req.status === "rejected") {
+        return { label: "Ditolak", icon: X, className: "text-red-600" };
+    }
+    if (req.status === "approved") {
+        if (req.fulfilled_from_stock) {
+            return { label: "Transfer dari Stok", icon: PackageCheck, className: "text-blue-600" };
+        }
+        return { label: "Pembelian", icon: ShoppingCart, className: "text-green-700" };
+    }
+    return null;
+}
+
+function ActionStatus({ req }: { req: RequestWithFulfillment }) {
+    const info = getActionInfo(req);
+    if (!info) return null;
+    const Icon = info.icon;
+    return (
+        <span className={`inline-flex items-center gap-1 text-xs font-medium ${info.className}`}>
+            <Icon className="h-3.5 w-3.5" />
+            {info.label}
+        </span>
+    );
+}
+
 function RequestActions({
     req,
     onApprove,
@@ -69,29 +136,91 @@ function RequestActions({
     onReject: (id: number) => void;
     size?: "default" | "sm";
 }) {
-    if (req.status !== "pending") return null;
+    if (req.status !== "pending") {
+        return <ActionStatus req={req} />;
+    }
 
     return (
-        <>
+        <div className="flex items-center gap-1.5">
             <Button size={size} onClick={() => onApprove(req.id)}>
                 <Check className="h-4 w-4 mr-1" />
                 Pembelian
             </Button>
-            <Button size={size} variant="secondary" onClick={() => onFulfill(req.id)}>
-                <PackageCheck className="h-4 w-4 mr-1" />
-                Gunakan Stok
+
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button size="icon" variant="ghost" className="h-8 w-8">
+                        <MoreVertical className="h-4 w-4" />
+                        <span className="sr-only">Lagi tindakan</span>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => onFulfill(req.id)}>
+                        <PackageCheck className="h-4 w-4 mr-2" />
+                        Gunakan Stok
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                        onClick={() => onReject(req.id)}
+                        className="text-red-600 focus:text-red-600"
+                    >
+                        <X className="h-4 w-4 mr-2" />
+                        Tolak
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </div>
+    );
+}
+
+function MobileRequestActions({
+    req,
+    onApprove,
+    onFulfill,
+    onReject,
+}: {
+    req: Request;
+    onApprove: (id: number) => void;
+    onFulfill: (id: number) => void;
+    onReject: (id: number) => void;
+}) {
+    if (req.status !== "pending") {
+        return <ActionStatus req={req} />;
+    }
+
+    return (
+        <div className="flex items-center gap-2 w-full">
+            <Button size="sm" className="flex-1" onClick={() => onApprove(req.id)}>
+                <Check className="h-4 w-4 mr-1" />
+                Pembelian
             </Button>
-            <Button size={size} variant="destructive" onClick={() => onReject(req.id)}>
-                <X className="h-4 w-4 mr-1" />
-                Tolak
-            </Button>
-        </>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button size="icon" variant="outline" className="h-9 w-9 shrink-0">
+                        <MoreVertical className="h-4 w-4" />
+                        <span className="sr-only">Lagi tindakan</span>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => onFulfill(req.id)}>
+                        <PackageCheck className="h-4 w-4 mr-2" />
+                        Gunakan Stok
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                        onClick={() => onReject(req.id)}
+                        className="text-red-600 focus:text-red-600"
+                    >
+                        <X className="h-4 w-4 mr-2" />
+                        Tolak
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </div>
     );
 }
 
 export default function RequestListPage() {
     const [requests, setRequests] = useState<Request[]>([]);
-    const [itemInfoMap, setItemInfoMap] = useState<Record<number, ItemInfo>>({});
+    const [itemInfoMap, setItemInfoMap] = useState<Record<number, ItemInfoWithPackage>>({});
     const [loading, setLoading] = useState(false);
 
     const [search, setSearch] = useState("");
@@ -106,13 +235,14 @@ export default function RequestListPage() {
     const fetchStock = async () => {
         try {
             const res = await API.get("/inventory/with-stock/");
-            const map: Record<number, ItemInfo> = {};
+            const map: Record<number, ItemInfoWithPackage> = {};
             res.data.forEach((item: any) => {
                 map[item.id] = {
                     name: item.name,
                     unit: item.unit,
                     price_per_unit: item.price_per_unit ?? null,
                     management_stock: item.management_stock,
+                    package_size: item.package_size ?? item.size_per_package ?? item.pack_size ?? null,
                 };
             });
             setItemInfoMap(map);
@@ -203,7 +333,10 @@ export default function RequestListPage() {
     const downloadPdf = () => {
         const pendingRequests = filteredRequests.filter((r) => r.status === "pending");
         const existingDemand = new Map<number, { totalRequested: number }>();
-        const newItemDemand = new Map<string, { name: string; unit: string; totalRequested: number }>();
+        const newItemDemand = new Map<
+            string,
+            { name: string; unit: string; packageSize: string; totalRequested: number }
+        >();
 
         pendingRequests.forEach((req) => {
             if (req.item != null) {
@@ -213,8 +346,9 @@ export default function RequestListPage() {
             } else {
                 const key = `${req.new_item_name ?? ""}|${req.new_item_unit ?? ""}`;
                 const entry = newItemDemand.get(key) ?? {
-                    name: getItemLabel(req),
+                    name: getBaseName(req),
                     unit: req.new_item_unit ?? "",
+                    packageSize: getPackageSizeDisplay(req, itemInfoMap),
                     totalRequested: 0,
                 };
                 entry.totalRequested += req.quantity;
@@ -225,6 +359,7 @@ export default function RequestListPage() {
         type PurchaseLine = {
             name: string;
             unit: string;
+            packageSize: string;
             totalRequested: number;
             stock: number;
             toPurchase: number;
@@ -239,6 +374,10 @@ export default function RequestListPage() {
                 return {
                     name: info?.name ?? `Item #${itemId}`,
                     unit: info?.unit ?? "",
+                    packageSize:
+                        info?.package_size != null && info.package_size !== ""
+                            ? String(parseFloat(String(info.package_size)))
+                            : "-",
                     totalRequested: demand.totalRequested,
                     stock,
                     toPurchase,
@@ -251,6 +390,7 @@ export default function RequestListPage() {
         const newLines: PurchaseLine[] = Array.from(newItemDemand.values()).map((demand) => ({
             name: demand.name,
             unit: demand.unit,
+            packageSize: demand.packageSize,
             totalRequested: demand.totalRequested,
             stock: 0,
             toPurchase: demand.totalRequested,
@@ -288,27 +428,36 @@ export default function RequestListPage() {
             autoTable(doc, {
                 startY: y,
                 head: hasAnyCost
-                    ? [["\u2611", "Item", "Requested", "In Stock", "To Buy", "Unit", "Est. Cost"]]
-                    : [["\u2611", "Item", "Requested", "In Stock", "To Buy", "Unit"]],
+                    ? [["\u2611", "Item", "Saiz Pek", "Unit", "Diminta", "Stok", "Beli", "Anggaran Kos"]]
+                    : [["\u2611", "Item", "Saiz Pek", "Unit", "Diminta", "Stok", "Beli"]],
                 body: purchaseLines.map((l) =>
                     hasAnyCost
                         ? [
                               "",
                               l.name,
+                              l.packageSize,
+                              l.unit,
                               String(l.totalRequested),
                               String(l.stock),
                               String(l.toPurchase),
-                              l.unit,
                               l.estimatedCost != null ? `RM ${l.estimatedCost.toFixed(2)}` : "-",
                           ]
-                        : ["", l.name, String(l.totalRequested), String(l.stock), String(l.toPurchase), l.unit]
+                        : [
+                              "",
+                              l.name,
+                              l.packageSize,
+                              l.unit,
+                              String(l.totalRequested),
+                              String(l.stock),
+                              String(l.toPurchase),
+                          ]
                 ),
                 theme: "grid",
                 styles: { fontSize: 10 },
                 headStyles: { fillColor: [40, 40, 40] },
                 columnStyles: { 0: { cellWidth: 8, halign: "center" } },
                 foot: hasAnyCost
-                    ? [["", "", "", "", "", "Total", `RM ${grandTotal.toFixed(2)}`]]
+                    ? [["", "", "", "", "", "", "Total", `RM ${grandTotal.toFixed(2)}`]]
                     : undefined,
                 footStyles: { fillColor: [230, 230, 230], textColor: 0, fontStyle: "bold" },
             });
@@ -331,8 +480,14 @@ export default function RequestListPage() {
 
             autoTable(doc, {
                 startY: y,
-                head: [["Item", "Qty", "Reason"]],
-                body: kitchenPending.map((r) => [getItemLabel(r), String(r.quantity), r.reason || "-"]),
+                head: [["Item", "Kuantiti", "Saiz Pek", "Unit", "Sebab"]],
+                body: kitchenPending.map((r) => [
+                    getBaseName(r),
+                    String(r.quantity),
+                    getPackageSizeDisplay(r, itemInfoMap),
+                    getUnitDisplay(r, itemInfoMap),
+                    r.reason || "-",
+                ]),
                 theme: "grid",
                 styles: { fontSize: 10 },
                 headStyles: { fillColor: [90, 90, 90] },
@@ -360,13 +515,13 @@ export default function RequestListPage() {
                             placeholder="Search item..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full max-w-xs rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                            className="w-max rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 sm:max-w-xs sm:py-1.5"
                         />
 
                         <select
                             value={kitchenFilter}
                             onChange={(e) => setKitchenFilter(e.target.value)}
-                            className="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                            className="w-max rounded-md border border-gray-300 px-2 py-2 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 sm:w-auto sm:py-1.5"
                         >
                             <option value="all">All kitchens</option>
                             {kitchenOptions.map((name) => (
@@ -377,12 +532,12 @@ export default function RequestListPage() {
                         </select>
                     </div>
 
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
                         {STATUS_FILTERS.map((f) => (
                             <button
                                 key={f.value}
                                 onClick={() => setStatusFilter(f.value)}
-                                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                                className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:py-1 ${
                                     statusFilter === f.value
                                         ? "bg-gray-900 text-white"
                                         : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -394,74 +549,112 @@ export default function RequestListPage() {
                     </div>
                 </div>
 
-                {!loading && requests.length === 0 && (
-                    <p className="text-gray-500">Belum ada permintaan.</p>
-                )}
-
-                {!loading && requests.length > 0 && groupedRequests.length === 0 && (
-                    <p className="text-gray-500">Tiada permintaan yang sepadan dengan penapis ini.</p>
+                {!loading && groupedRequests.length === 0 && (
+                    <>
+                        <div className="hidden md:block">
+                            <DataTable
+                                columns={REQUEST_COLUMNS}
+                                data={[]}
+                                emptyMessage={
+                                    requests.length === 0
+                                        ? "Belum ada permintaan."
+                                        : "Tiada permintaan yang sepadan dengan penapis ini."
+                                }
+                                renderRow={() => null}
+                            />
+                        </div>
+                        <p className="text-center text-sm text-gray-500 md:hidden">
+                            {requests.length === 0
+                                ? "Belum ada permintaan."
+                                : "Tiada permintaan yang sepadan dengan penapis ini."}
+                        </p>
+                    </>
                 )}
 
                 {groupedRequests.map((group) => (
                     <div key={group.kitchen_name} className="space-y-3">
                         <h2 className="text-lg font-semibold">{group.kitchen_name}</h2>
 
-                        <DataTable
-                            columns={[
-                                { key: "no", label: "Bil.", className: "w-10" },
-                                { key: "item", label: "Item" },
-                                { key: "qty", label: "Kuantiti" },
-                                { key: "reason", label: "Sebab" },
-                                { key: "stock", label: "Stok Check" },
-                                { key: "status", label: "Status" },
-                                { key: "action", label: "Action", align: "center" as const },
-                            ]}
-                            data={group.requests}
-                            emptyMessage="Tiada permintaan."
-                            renderRow={(req, index) => (
-                                <TableRow key={req.id}>
-                                <TableCell className="font-medium">{index + 1}</TableCell>
-                                <TableCell className="font-medium">{getItemLabel(req)}</TableCell>
-                                <TableCell>{req.quantity}</TableCell>
-                                <TableCell className="text-gray-600">{req.reason}</TableCell>
-                                <TableCell><StockCheckBadge check={getStockCheck(req)} /></TableCell>
-                                <TableCell><Badge className={getBadgeStyle(req.status)}>{req.status.toUpperCase()}</Badge></TableCell>
-                                <TableCell className="p-3">
-                                    <div className="flex gap-2 justify-center flex-wrap">
-                                    <RequestActions req={req} onApprove={approve} onFulfill={fulfillFromStock} onReject={reject} />
-                                    </div>
-                                </TableCell>
-                                </TableRow>
-                            )}
-                            />
+                        <div className="hidden md:block">
+                            <DataTable
+                                columns={REQUEST_COLUMNS}
+                                data={group.requests}
+                                loading={loading}
+                                emptyMessage="Tiada permintaan."
+                                renderRow={(req, index) => (
+                                    <TableRow key={req.id}>
+                                    <TableCell className="font-medium">{index + 1}</TableCell>
+                                    <TableCell className="font-medium">{getItemLabel(req)}</TableCell>
+                                    <TableCell>{req.quantity}</TableCell>
+                                    <TableCell className="text-gray-600">{req.reason}</TableCell>
+                                    <TableCell><StockCheckBadge check={getStockCheck(req)} /></TableCell>
+                                    <TableCell><Badge className={getBadgeStyle(req.status)}>{req.status.toUpperCase()}</Badge></TableCell>
+                                    <TableCell className="p-3">
+                                        <div className="flex gap-2 justify-center flex-wrap">
+                                        <RequestActions req={req} onApprove={approve} onFulfill={fulfillFromStock} onReject={reject} />
+                                        </div>
+                                    </TableCell>
+                                    </TableRow>
+                                )}
+                                />
+                        </div>
 
+                        {/* MOBILE CARDS */}
                         <div className="grid grid-cols-1 gap-3 md:hidden">
                             {group.requests.map((req) => (
-                                <Card key={req.id}>
+                                <Card key={req.id} className="overflow-hidden">
                                     <CardContent className="p-4 space-y-3">
-                                        <div className="flex justify-between items-start gap-2">
-                                            <p className="font-semibold">{getItemLabel(req)}</p>
-                                            <Badge className={getBadgeStyle(req.status)}>
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div className="min-w-0">
+                                                <p className="font-semibold leading-snug truncate">
+                                                    {getBaseName(req)}
+                                                </p>
+                                                {req.reason && (
+                                                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                                                        {req.reason}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <Badge className={`${getBadgeStyle(req.status)} shrink-0`}>
                                                 {req.status.toUpperCase()}
                                             </Badge>
                                         </div>
 
-                                        <div className="text-sm text-gray-600 space-y-1">
-                                            <p>
-                                                Kunatiti:{" "}
-                                                <span className="font-medium text-gray-900">{req.quantity}</span>
-                                            </p>
-                                            <p>Sebab: {req.reason}</p>
-                                            <StockCheckBadge check={getStockCheck(req)} />
+                                        <div className="grid grid-cols-3 gap-2 rounded-md bg-gray-50 p-2.5 text-center">
+                                            <div>
+                                                <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400">
+                                                    Kuantiti
+                                                </p>
+                                                <p className="text-sm font-semibold text-gray-900">
+                                                    {req.quantity}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400">
+                                                    Saiz Pek
+                                                </p>
+                                                <p className="text-sm font-semibold text-gray-900">
+                                                    {getPackageSizeDisplay(req, itemInfoMap)}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400">
+                                                    Unit
+                                                </p>
+                                                <p className="text-sm font-semibold text-gray-900">
+                                                    {getUnitDisplay(req, itemInfoMap)}
+                                                </p>
+                                            </div>
                                         </div>
 
-                                        <div className="flex gap-2 justify-end pt-1 flex-wrap">
-                                            <RequestActions
+                                        <StockCheckBadge check={getStockCheck(req)} />
+
+                                        <div className="flex items-center justify-end gap-2 border-t border-gray-100 pt-3">
+                                            <MobileRequestActions
                                                 req={req}
                                                 onApprove={approve}
                                                 onFulfill={fulfillFromStock}
                                                 onReject={reject}
-                                                size="sm"
                                             />
                                         </div>
                                     </CardContent>

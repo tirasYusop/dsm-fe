@@ -24,7 +24,7 @@ export default function DashboardLayout({
       label: "Aktiviti",
       items: [
         { label: "Imbas QR", href: "/student/scan" },
-        { label: "Aktiviti", href: "/student/activity/" },
+        { label: "Aktiviti", href: "/student/activityRecord" },
       ],
     },
     {

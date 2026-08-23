@@ -11,6 +11,7 @@ interface PaginationControlsProps {
   onNext: () => void;
   onPrevious: () => void;
   loading?: boolean;
+  currentCount?: number;
   totalCount?: number;
   pageSize?: number;
   itemLabel?: string;
@@ -24,18 +25,19 @@ export default function PaginationControls({
   onNext,
   onPrevious,
   loading,
+  currentCount,
   totalCount,
   pageSize,
   itemLabel,
 }: PaginationControlsProps) {
-const showingRange =
-  totalCount != null && totalCount > 0
-    ? ` ${totalCount} daripada ${totalCount}${itemLabel ? ` ${itemLabel}` : ""}`
-    : null;
+  const showingRange =
+    totalCount != null && totalCount > 0
+      ? `${currentCount ?? totalCount} daripada ${totalCount}${itemLabel ? ` ${itemLabel}` : ""}`
+      : null;
 
   return (
-    <div className="flex flex-col items-center justify-between gap-3 border-t pt-4 sm:flex-row">
-      {showingRange ? <div className="text-sm text-gray-500">{showingRange}</div> : <div />}
+    <div className="flex flex-col items-center justify-center gap-3 border-t pt-4 sm:flex-row">
+      {/*{showingRange ? <div className="text-sm text-gray-500">{showingRange}</div> : <div />}*/}
       <div className="flex items-center gap-2">
         <Button variant="outline" size="sm" disabled={!hasPrevious || loading} onClick={onPrevious}>
           <ChevronLeft className="mr-1 h-4 w-4" />

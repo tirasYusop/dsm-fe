@@ -206,12 +206,6 @@ export default function FeedbackManagementPage() {
         <FilterBar
           selects={[
             {
-              value: selectedKitchen,
-              onChange: setSelectedKitchen,
-              options: kitchens.map((k) => ({ value: String(k.id), label: k.name })),
-              allLabel: "Semua Dapur",
-            },
-            {
               value: selectedRating,
               onChange: setSelectedRating,
               options: [5, 4, 3, 2, 1].map((r) => ({ value: String(r), label: `${r} Bintang` })),

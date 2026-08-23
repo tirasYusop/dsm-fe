@@ -27,11 +27,11 @@ function formatDate(value: string) {
 }
 
 const STATUS_FILTERS = [
-  { value: "all", label: "All" },
-  { value: "pending", label: "Pending" },
-  { value: "approved", label: "Approved" },
-  { value: "rejected", label: "Rejected" },
-  { value: "cancelled", label: "Cancelled" },
+  { value: "all", label: "Semua" },
+  { value: "pending", label: "Menunggu" },
+  { value: "approved", label: "Diluluskan" },
+  { value: "rejected", label: "Ditolak" },
+  { value: "cancelled", label: "Dibatalkan" },
 ];
 
 function getBadgeStyle(status: string) {
@@ -105,8 +105,8 @@ export default function RequestListPage() {
         {/* HEADER */}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-xl font-bold sm:text-2xl">Request History</h1>
-            <p className="text-sm text-gray-500">Manage your ingredient requests</p>
+            <h1 className="text-xl font-bold sm:text-2xl">Permohonan Bahan</h1>
+            <p className="text-sm text-gray-500">Rekod permintaan inventori yang telah dibuat</p>
           </div>
           <Button onClick={() => setDrawerOpen(true)} className="shrink-0">
             <Plus className="mr-1 h-4 w-4" />
@@ -119,7 +119,7 @@ export default function RequestListPage() {
         <div className="space-y-2 sm:flex sm:items-center sm:justify-between sm:space-y-0">
           <input
             type="text"
-            placeholder="Search item..."
+            placeholder="Cari item..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 sm:max-w-xs"
@@ -143,24 +143,24 @@ export default function RequestListPage() {
         </div>
 
         {loading ? (
-          <p className="text-center text-gray-500">Loading...</p>
+          <p className="text-center text-gray-500">Sedang memuatkan...</p>
         ) : requests.length === 0 ? (
-          <p className="text-center text-gray-500">No requests found</p>
+          <p className="text-center text-gray-500">Tiada permintaan ditemui</p>
         ) : filteredRequests.length === 0 ? (
-          <p className="text-center text-gray-500">No requests match this filter</p>
+          <p className="text-center text-gray-500">Tiada permintaan sepadan dengan carian ini</p>
         ) : (
           <>
             <div className="hidden overflow-x-auto rounded-xl border border-gray-200 sm:block">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50 hover:bg-gray-50">
-                    <TableHead className="w-10">No</TableHead>
-                    <TableHead>Item</TableHead>
-                    <TableHead className="text-center">Quantity</TableHead>
-                    <TableHead>Reason</TableHead>
-                    <TableHead>Date</TableHead>
+                    <TableHead className="w-10">Bil.</TableHead>
+                    <TableHead>Bahan</TableHead>
+                    <TableHead className="text-center">Kuantiti</TableHead>
+                    <TableHead>Sebab</TableHead>
+                    <TableHead>Tarikh</TableHead>
                     <TableHead className="text-center">Status</TableHead>
-                    <TableHead className="text-center">Actions</TableHead>
+                    <TableHead className="text-center">Tindakan</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -190,7 +190,7 @@ export default function RequestListPage() {
                               variant="outline"
                               onClick={() => cancelRequest(req.id)}
                             >
-                              Cancel
+                            Batal
                             </Button>
                           )}
                           <Button
@@ -198,7 +198,7 @@ export default function RequestListPage() {
                             variant="destructive"
                             onClick={() => deleteRequest(req.id)}
                           >
-                            Delete
+                            Padam
                           </Button>
                         </div>
                       </TableCell>
@@ -223,10 +223,11 @@ export default function RequestListPage() {
                     </div>
 
                     <div className="space-y-1">
-                      <p className="text-sm text-gray-600">Reason: {req.reason}</p>
+                      <p className="text-sm text-gray-600">Sebab: {req.reason}</p>
                       <div className="flex items-center justify-between text-xs text-gray-500">
                         <span>
-                          Qty: <span className="font-medium text-gray-700">{req.quantity}</span>
+                          Kuantiti:{" "}
+                          <span className="font-medium text-gray-700">{req.quantity}</span>
                         </span>
                         <span className="text-gray-400">{formatDate(req.created_at)}</span>
                       </div>

@@ -20,8 +20,6 @@ export interface PageMeta {
   previous: string | null;
 }
 
-// Backend's page_size isn't in PaginatedResponse<T> above (it's a custom field
-// your DefaultPagination adds), so read it loosely off the raw response.
 export function getPageMeta<T>(data: PaginatedResponse<T> | T[], fallbackPageSize = 10): PageMeta {
   if (Array.isArray(data)) {
     return { count: data.length, page_size: fallbackPageSize, next: null, previous: null };

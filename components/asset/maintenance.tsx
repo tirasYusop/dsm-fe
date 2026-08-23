@@ -130,7 +130,7 @@ export default function AssetMaintenanceTab() {
             mode === "return" ? "bg-white text-gray-900 shadow" : "text-gray-500"
           }`}
         >
-          Tandakan Pulang
+          Status Penyelengaraan
         </button>
       </div>
 
@@ -229,11 +229,11 @@ export default function AssetMaintenanceTab() {
         </BaseForm>
       ) : (
         <BaseForm
-          title="Tandakan Aset Pulang"
+          title="Tandakan Pemulangan Aset"
           subtitle="Rekod tarikh unit dipulangkan selepas penyelenggaraan selesai"
           onSubmit={handleReturn}
           loading={returning}
-          submitText="Tandakan Pulang"
+          submitText="Status Penyelengaraan"
         >
           <div>
             <label className="text-sm font-medium">Pilih Rekod Penyelenggaraan</label>

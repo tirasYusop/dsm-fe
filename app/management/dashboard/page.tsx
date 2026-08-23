@@ -255,7 +255,7 @@ export default function ManagementDashboard() {
         </div>
 
         {/* KITCHEN/STUDENT STATS */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
           {loading ? (
             Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
           ) : (
@@ -271,7 +271,7 @@ export default function ManagementDashboard() {
         {/* TODAY'S STATS */}
         <div>
           <p className="text-xs font-semibold tracking-[0.2em] text-[#5B7B87] uppercase mb-3">Hari Ini</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-5">
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)
             ) : (

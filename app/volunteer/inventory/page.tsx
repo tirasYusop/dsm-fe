@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import API from "@/lib/api1";
 import InventoryTable from "@/components/volunteer/InventoryTable";
-import UsageHistoryTable from "@/components/volunteer/UsageTable";
 import RoleGuard from "@/components/auth/roleguard";
 import type {InventoryItem,UsageRecord,UsageEntry} from "@/types/kitchen"
 
@@ -64,10 +63,10 @@ export default function InventoryPage() {
         ...prev,
         [id]: { quantity: 0, unit },
       }));
-      alert("Usage recorded");
+      alert("Penggunaan Berjaya Direkod");
     } catch (err: any) {
       console.error(err);
-      alert(err?.response?.data?.error ?? "Failed to submit usage");
+      alert(err?.response?.data?.error ?? "Gagal untuk menyimpan rekod penggunaan");
     }
   };
 
@@ -88,7 +87,10 @@ export default function InventoryPage() {
   return (
     <RoleGuard allowedRoles={["volunteer"]}>
       <div className="space-y-6">
-        <h1 className="text-lg sm:text-2xl font-bold"> Inventory Usage (Volunteer)</h1>
+        <div className="min-w-0">
+          <h1 className="text-lg sm:text-2xl font-bold">Inventori</h1>
+          <p className="text-sm text-gray-500">Rekodkan penggunaan bahan.</p>
+        </div>
 
         <InventoryTable
           inventory={inventory}

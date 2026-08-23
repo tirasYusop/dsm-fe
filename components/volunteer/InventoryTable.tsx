@@ -235,7 +235,7 @@ export default function InventoryTable({
                               : "bg-gray-900 hover:bg-gray-700"
                           }`}
                         >
-                          Gunakan
+                          Simpan
                         </button>
 
                         <button
@@ -370,7 +370,7 @@ export default function InventoryTable({
                   disabled={item.status==="out"}
                   className=" h-10 rounded-lg bg-gray-900 text-sm font-medium text-white disabled:bg-gray-300 "
                 >
-                  Gunakan
+                  Simpan
                 </button>
 
                 <button
