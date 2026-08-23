@@ -31,6 +31,23 @@ function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
+// Best-effort browser geolocation. Resolves null (never rejects) if the
+// browser has no geolocation support, permission is denied, or it times out —
+// clock-in/out should never be blocked by a missing/failed location fix.
+function getLocation(): Promise<{ lat: number; lng: number } | null> {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      resolve(null);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => resolve(null),
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  });
+}
+
 export default function VolunteerTimeLogPage() {
   const [roster, setRoster] = useState<VolunteerProfile[]>([]);
   const [selectedId, setSelectedId] = useState<number | "">("");
@@ -68,13 +85,10 @@ export default function VolunteerTimeLogPage() {
     fetchHistory();
   }, []);
 
-  // Pulled out of the effect below so the poll below can call the same logic.
   const refreshCurrentShift = useCallback(async (volunteerId: number) => {
     try {
       const res = await API.get(`/volunteer-shifts/current/?volunteer=${volunteerId}`);
       setCurrentShift((prev) => {
-        // If a shift that was open just came back null, it got auto clocked-out —
-        // refresh history so it shows up in the recent-shifts list right away.
         if (prev && !res.data) fetchHistory();
         return res.data;
       });
@@ -94,8 +108,6 @@ export default function VolunteerTimeLogPage() {
     refreshCurrentShift(selectedId).finally(() => setCheckingStatus(false));
   }, [selectedId, refreshCurrentShift]);
 
-  // While a shift is open, periodically re-check status — this is what surfaces
-  // an auto clock-out (the backend closes it lazily on this same endpoint).
   useEffect(() => {
     if (pollRef.current) clearInterval(pollRef.current);
     if (selectedId && currentShift) {
@@ -120,7 +132,13 @@ export default function VolunteerTimeLogPage() {
   const handleClockIn = async () => {
     setSubmitting(true);
     try {
-      const res = await API.post("/volunteer-shifts/clock-in/", { volunteer: selectedId, notes });
+      const loc = await getLocation();
+      const res = await API.post("/volunteer-shifts/clock-in/", {
+        volunteer: selectedId,
+        notes,
+        lat: loc?.lat,
+        lng: loc?.lng,
+      });
       setCurrentShift(res.data);
     } catch (err: any) {
       console.log(err);
@@ -133,7 +151,13 @@ export default function VolunteerTimeLogPage() {
   const handleClockOut = async () => {
     setSubmitting(true);
     try {
-      await API.post("/volunteer-shifts/clock-out/", { volunteer: selectedId, notes });
+      const loc = await getLocation();
+      await API.post("/volunteer-shifts/clock-out/", {
+        volunteer: selectedId,
+        notes,
+        lat: loc?.lat,
+        lng: loc?.lng,
+      });
       setCurrentShift(null);
       setNotes("");
       setSelectedId("");
@@ -154,7 +178,6 @@ export default function VolunteerTimeLogPage() {
           <p className="text-sm text-gray-500">Pilih nama anda untuk merekod waktu masuk atau keluar.</p>
         </div>
 
-        {/* Name picker */}
         <Card className="border-gray-100 shadow-sm">
           <CardContent className="p-4">
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Nama</label>
@@ -179,7 +202,6 @@ export default function VolunteerTimeLogPage() {
           </CardContent>
         </Card>
 
-        {/* Clock in/out */}
         {selectedId && (
           <Card className="border-gray-100 shadow-sm">
             <CardContent className="space-y-4 p-4">
@@ -235,7 +257,6 @@ export default function VolunteerTimeLogPage() {
           </Card>
         )}
 
-        {/* Shift history for the whole kitchen */}
         <Card className="border-gray-100 shadow-sm">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">

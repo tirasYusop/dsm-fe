@@ -32,6 +32,13 @@ function todayStr() {
   return `${y}-${m}-${day}`;
 }
 
+// Google Maps link from raw coordinates. Returns null when either value is
+// missing (e.g. volunteer denied location permission at clock-in/out).
+function locationLink(lat: number | null | undefined, lng: number | null | undefined) {
+  if (lat == null || lng == null) return null;
+  return `https://www.google.com/maps?q=${lat},${lng}`;
+}
+
 export default function VolunteerReportPage() {
   const [kitchens, setKitchens] = useState<Kitchen[]>([]);
   const [selectedKitchen, setSelectedKitchen] = useState<string>("");
@@ -134,6 +141,8 @@ export default function VolunteerReportPage() {
     shift.kitchen_name,
     formatDateTime(shift.clock_in),
     shift.clock_out ? formatDateTime(shift.clock_out) : "—",
+    shift.clock_in_lat != null ? `${shift.clock_in_lat}, ${shift.clock_in_lng}` : "—",
+    shift.clock_out_lat != null ? `${shift.clock_out_lat}, ${shift.clock_out_lng}` : "—",
     formatDuration(shift.duration_minutes),
     shift.notes || "—",
     shift.is_active ? "Active" : "Completed",
@@ -150,7 +159,7 @@ export default function VolunteerReportPage() {
               <ExportButton
                 title="Volunteer time report"
                 filename="volunteer-report"
-                columns={["No.", "Volunteer", "Kitchen", "Clock in", "Clock out", "Duration", "Notes", "Status"]}
+                columns={["No.", "Volunteer", "Kitchen", "Clock in", "Clock out", "Clock in loc.", "Clock out loc.", "Duration", "Notes", "Status"]}
                 rows={exportRows}
                 subtitle={`Kitchen: ${kitchenLabel} · Tarikh: ${selectedDate} · Total (halaman ini): ${formatDuration(totalMinutes)} · Eksport halaman semasa sahaja`}
               />
@@ -252,6 +261,7 @@ export default function VolunteerReportPage() {
                 <TableHead className="p-2 text-left font-bold">Dapur</TableHead>
                 <TableHead className="p-2 text-left font-bold">Clock in</TableHead>
                 <TableHead className="p-2 text-left font-bold">Clock out</TableHead>
+                <TableHead className="p-2 text-left font-bold">Lokasi</TableHead>
                 <TableHead className="p-2 text-left font-bold">Waktu Bekerja</TableHead>
                 <TableHead className="p-2 text-left font-bold">Nota</TableHead>
                 <TableHead className="p-2 text-left font-bold">Status</TableHead>
@@ -259,30 +269,52 @@ export default function VolunteerReportPage() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={8}>Loading...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9}>Loading...</TableCell></TableRow>
               ) : filteredShifts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="p-6 text-center text-gray-500">
+                  <TableCell colSpan={9} className="p-6 text-center text-gray-500">
                     Tiada syif direkodkan lagi.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredShifts.map((shift, index) => (
-                  <TableRow key={shift.id} className="border-t">
-                    <TableCell className="p-2 font-medium">{(page - 1) * pageSize + index + 1}</TableCell>
-                    <TableCell className="p-2 font-medium">{shift.volunteer_name}</TableCell>
-                    <TableCell className="p-2">{shift.kitchen_name}</TableCell>
-                    <TableCell className="p-2">{formatDateTime(shift.clock_in)}</TableCell>
-                    <TableCell className="p-2">{shift.clock_out ? formatDateTime(shift.clock_out) : "—"}</TableCell>
-                    <TableCell className="p-2">{formatDuration(shift.duration_minutes)}</TableCell>
-                    <TableCell className="p-2 text-gray-600">{shift.notes || "—"}</TableCell>
-                    <TableCell className="p-2">
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${shift.is_active ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
-                        {shift.is_active ? "Active" : "Completed"}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))
+                filteredShifts.map((shift, index) => {
+                  const inLink = locationLink(shift.clock_in_lat, shift.clock_in_lng);
+                  const outLink = locationLink(shift.clock_out_lat, shift.clock_out_lng);
+                  return (
+                    <TableRow key={shift.id} className="border-t">
+                      <TableCell className="p-2 font-medium">{(page - 1) * pageSize + index + 1}</TableCell>
+                      <TableCell className="p-2 font-medium">{shift.volunteer_name}</TableCell>
+                      <TableCell className="p-2">{shift.kitchen_name}</TableCell>
+                      <TableCell className="p-2">{formatDateTime(shift.clock_in)}</TableCell>
+                      <TableCell className="p-2">{shift.clock_out ? formatDateTime(shift.clock_out) : "—"}</TableCell>
+                      <TableCell className="p-2">
+                        {!inLink && !outLink ? (
+                          <span className="text-gray-400">—</span>
+                        ) : (
+                          <div className="flex flex-col gap-0.5 text-xs">
+                            {inLink && (
+                              <a href={inLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                In
+                              </a>
+                            )}
+                            {outLink && (
+                              <a href={outLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                Out
+                              </a>
+                            )}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="p-2">{formatDuration(shift.duration_minutes)}</TableCell>
+                      <TableCell className="p-2 text-gray-600">{shift.notes || "—"}</TableCell>
+                      <TableCell className="p-2">
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${shift.is_active ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
+                          {shift.is_active ? "Active" : "Completed"}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
@@ -299,48 +331,71 @@ export default function VolunteerReportPage() {
               Tiada syif direkodkan lagi.
             </div>
           ) : (
-            filteredShifts.map((shift, index) => (
-              <div key={shift.id} className="rounded-lg border bg-white p-4 shadow-sm">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-xs text-gray-400">#{(page - 1) * pageSize + index + 1}</p>
-                    <p className="truncate font-semibold text-gray-900">{shift.volunteer_name}</p>
-                    <p className="text-sm text-gray-500">{shift.kitchen_name}</p>
+            filteredShifts.map((shift, index) => {
+              const inLink = locationLink(shift.clock_in_lat, shift.clock_in_lng);
+              const outLink = locationLink(shift.clock_out_lat, shift.clock_out_lng);
+              return (
+                <div key={shift.id} className="rounded-lg border bg-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-400">#{(page - 1) * pageSize + index + 1}</p>
+                      <p className="truncate font-semibold text-gray-900">{shift.volunteer_name}</p>
+                      <p className="text-sm text-gray-500">{shift.kitchen_name}</p>
+                    </div>
+                    <span
+                      className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+                        shift.is_active ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"
+                      }`}
+                    >
+                      {shift.is_active ? "Active" : "Completed"}
+                    </span>
                   </div>
-                  <span
-                    className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
-                      shift.is_active ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"
-                    }`}
-                  >
-                    {shift.is_active ? "Active" : "Completed"}
-                  </span>
-                </div>
 
-                <div className="mt-3 grid grid-cols-2 gap-y-2 border-t border-gray-100 pt-3 text-sm">
-                  <div>
-                    <p className="text-xs text-gray-400">Clock in</p>
-                    <p className="font-medium text-gray-800">{formatDateTime(shift.clock_in)}</p>
+                  <div className="mt-3 grid grid-cols-2 gap-y-2 border-t border-gray-100 pt-3 text-sm">
+                    <div>
+                      <p className="text-xs text-gray-400">Clock in</p>
+                      <p className="font-medium text-gray-800">{formatDateTime(shift.clock_in)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400">Clock out</p>
+                      <p className="font-medium text-gray-800">
+                        {shift.clock_out ? formatDateTime(shift.clock_out) : "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400">Waktu Bekerja</p>
+                      <p className="font-medium text-gray-800">{formatDuration(shift.duration_minutes)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400">Lokasi</p>
+                      {!inLink && !outLink ? (
+                        <p className="font-medium text-gray-400">—</p>
+                      ) : (
+                        <div className="flex gap-2">
+                          {inLink && (
+                            <a href={inLink} target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 hover:underline">
+                              In
+                            </a>
+                          )}
+                          {outLink && (
+                            <a href={outLink} target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 hover:underline">
+                              Out
+                            </a>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-400">Clock out</p>
-                    <p className="font-medium text-gray-800">
-                      {shift.clock_out ? formatDateTime(shift.clock_out) : "—"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400">Waktu Bekerja</p>
-                    <p className="font-medium text-gray-800">{formatDuration(shift.duration_minutes)}</p>
-                  </div>
-                </div>
 
-                {shift.notes && (
-                  <div className="mt-2 border-t border-gray-100 pt-2 text-sm text-gray-600">
-                    <p className="text-xs text-gray-400">Nota</p>
-                    <p className="truncate">{shift.notes}</p>
-                  </div>
-                )}
-              </div>
-            ))
+                  {shift.notes && (
+                    <div className="mt-2 border-t border-gray-100 pt-2 text-sm text-gray-600">
+                      <p className="text-xs text-gray-400">Nota</p>
+                      <p className="truncate">{shift.notes}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })
           )}
         </div>
 

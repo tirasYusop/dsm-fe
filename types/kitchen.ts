@@ -125,10 +125,14 @@ export interface Shift {
   kitchen_name: string;
   clock_in: string;
   clock_out: string | null;
+  clock_in_lat: number | null;
+  clock_in_lng: number | null;
+  clock_out_lat: number | null;
+  clock_out_lng: number | null;
   notes: string;
   duration_minutes: number;
   is_active: boolean;
-  auto_clocked_out:boolean;
+  auto_clocked_out: boolean;
 };
 
 export interface Request {
