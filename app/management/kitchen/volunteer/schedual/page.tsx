@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import { Kitchen, ShiftSlot, WeekDay, VolunteerProfile } from "@/types/kitchen";
 import PageHeader from "@/components/ui/page-header";
 import PillTabs from "@/components/ui/pill-tabs";
+import ExportButton from "@/components/exportButton";
 
 function startOfWeek(date: Date): string {
   const d = new Date(date);
@@ -118,12 +119,45 @@ export default function VolunteerSchedulePage() {
   const totalFilled = days.reduce((sum, d) => sum + d.slots.reduce((s, sl) => s + sl.assigned.length, 0), 0);
   const totalOpen = days.reduce((sum, d) => sum + d.slots.reduce((s, sl) => s + sl.open_spots, 0), 0);
 
+  const kitchenLabel = kitchens.find((k) => String(k.id) === selectedKitchen)?.code ?? "";
+
+  const exportColumns = ["Slot", ...days.map((d) =>
+    new Date(d.date).toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })
+  )];
+
+  const exportRows = slotIds.map((slotId) => {
+    const slot = slotById[slotId];
+    const slotLabel = `${SLOT_TYPE_LABEL[slot.slot_type]} (${slot.start_time.slice(0, 5)}–${slot.end_time.slice(0, 5)})`;
+    const dayCells = days.map((day) => {
+      const cell = day.slots.find((s) => s.slot.id === slotId);
+      if (!cell) return "—";
+      const names = cell.assigned.map((a) => a.volunteer_name).join(", ");
+      if (cell.open_spots > 0) {
+        return names ? `${names} (+${cell.open_spots} open)` : `${cell.open_spots} open`;
+      }
+      return names || "—";
+    });
+    return [slotLabel, ...dayCells];
+  });
+
   return (
     <RoleGuard allowedRoles={["management"]}>
       <div className="mx-auto space-y-6">
-        <div>
-          <PageHeader title="Jadual Bertugas sukarelawan" subtitle="Daftarkan sukarelawan di sini, mereka akan memilih nama masing-masing untuk merekod waktu masuk/keluar di halaman sukarelawan." />
-        </div>
+        <PageHeader
+          title="Jadual Bertugas sukarelawan"
+          subtitle="Daftarkan sukarelawan di sini, mereka akan memilih nama masing-masing untuk merekod waktu masuk/keluar di halaman sukarelawan."
+          action={
+            <div className="w-full sm:w-auto">
+              <ExportButton
+                title="Volunteer weekly schedule"
+                filename="volunteer-schedule"
+                columns={exportColumns}
+                rows={exportRows}
+                subtitle={`Kitchen: ${kitchenLabel} · Minggu bermula: ${weekStart} · Diisi: ${totalFilled} · Kosong: ${totalOpen}`}
+              />
+            </div>
+          }
+        />
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Card className="border-gray-100 shadow-sm">
